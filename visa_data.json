@@ -1,0 +1,14 @@
+{
+  "IND": {
+    "visa_free": ["Nepal", "Bhutan", "Thailand"],
+    "visa_on_arrival": ["Maldives", "Indonesia", "Laos"],
+    "e_visa": ["Vietnam", "Kenya", "Turkey"],
+    "visa_required": ["USA", "UK", "Germany"]
+  },
+  "USA": {
+    "visa_free": ["Canada", "UK", "France"],
+    "visa_on_arrival": ["UAE", "Qatar"],
+    "e_visa": ["India", "Vietnam"],
+    "visa_required": ["Russia", "China"]
+  }
+}
