@@ -30,7 +30,7 @@ Built with the tools and technologies:
 
 ## Overview
 
-Roamgeni is an AI travel agent designed as a powerful developer tool for orchestrating complex automation and data processing workflows. It seamlessly integrates web scraping, text extraction, and communication systems to enable intelligent decision-making and operational efficiency for travelers. This project empowers developers to build scalable, automated solutions with ease, focusing on enhancing customer interactions and supporting travel data management through advanced AI agents and communication workflows.
+Roamgenie is an AI travel agent designed as a powerful developer tool for orchestrating complex automation and data processing workflows. It seamlessly integrates web scraping, text extraction, and communication systems to enable intelligent decision-making and operational efficiency for travelers. This project empowers developers to build scalable, automated solutions with ease, focusing on enhancing customer interactions and supporting travel data management through advanced AI agents and communication workflows.
 
 Roamgeni's core features include:
 
