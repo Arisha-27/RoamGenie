@@ -30,17 +30,34 @@ Built with the tools and technologies:
 
 ## Overview
 
-Roamgeni is a powerful developer tool designed to orchestrate complex automation and data processing workflows. It seamlessly integrates web scraping, text extraction, and communication systems to enable intelligent decision-making and operational efficiency.
+Roamgeni is an AI travel agent designed as a powerful developer tool for orchestrating complex automation and data processing workflows. It seamlessly integrates web scraping, text extraction, and communication systems to enable intelligent decision-making and operational efficiency for travelers. This project empowers developers to build scalable, automated solutions with ease, focusing on enhancing customer interactions and supporting travel data management through advanced AI agents and communication workflows.
 
-**Why Roamgenie?**
+Roamgeni's core features include:
 
-This project empowers developers to build scalable, automated solutions with ease. The core features include:
+AI Travel Companion Agent (ATCA): Provides real-time itinerary updates, booking tracking, and offers support through WhatsApp, web, or mobile interfaces. It also handles emergency information and offline fallback scenarios.
 
-  * **Search & Data Retrieval:** Utilizes SerpApi for efficient search data collection.
-  * **Text & Document Analysis:** Implements OCR for extracting information from images and documents.
-  * **Communication Workflows:** Integrates Twilio for notifications and IVR systems to enhance customer interactions.
-  * **Orchestration Hub:** Acts as the central coordinator for data acquisition, processing, and alerts.
-  * **Travel & Customer Support:** Supports travel data management and multilingual customer service solutions.
+AI Inquiry Call Agent (AICA): A multilingual IVR voice bot designed to assist with bookings, refunds, and escalations.
+
+
+Search & Data Retrieval: Utilizes SerpApi for efficient search data collection, crucial for finding flights and other travel-related information.
+
+
+Text & Document Analysis: Implements OCR for extracting information from images and documents, such as passport scans.
+
+
+Communication Workflows: Integrates Twilio for notifications and IVR systems to enhance customer interactions, supporting features like IVR calls and emergency alerts.
+
+
+Orchestration Hub: Acts as the central coordinator for data acquisition, processing, and alerts.
+
+
+Travel & Customer Support: Supports travel data management and multilingual customer service solutions.
+
+Passport Scan: Integrates functionality for uploading and scanning passport photos to discover visa-free travel destinations.
+
+Emergency & Offline Support: Features simulation for flight cancellation alerts and offline fallback messages via WhatsApp.
+
+CRM Integration: Provides a contact form to save user information into a CRM system (Vendasta in this case)
 
 -----
 
