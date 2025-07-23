@@ -28,7 +28,7 @@ except KeyError:
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     twilio_token = "your_auth_token"
-    twilio_number = "+1234567890"
+    twilio_number = ""
     client = None
 
 def make_voice_call(to_number, message):
@@ -874,9 +874,9 @@ elif st.session_state.current_page == "Contact Us":
         else:
             st.warning("Please complete all fields.")
 # Twilio credentials
-TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "6c693db27f21ad86c90aa0e77acca6e4"
-TWILIO_WHATSAPP = "whatsapp:+14155238886"  # Twilio sandbox number
+TWILIO_SID = ""
+TWILIO_AUTH_TOKEN = ""
+TWILIO_WHATSAPP = ""  # Twilio sandbox number
 client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
 st.markdown("## 🛡️ Emergency & Offline Support")

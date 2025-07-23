@@ -6,12 +6,12 @@ import uvicorn
 
 ivr_app = FastAPI()
 
-BASE_URL = "https://30240a1ce4c2.ngrok-free.app"  # Replace with your current ngrok URL
+BASE_URL = ""  # Replace with your current ngrok URL
 
 # Twilio setup
-TWILIO_ACCOUNT_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "6c693db27f21ad86c90aa0e77acca6e4"
-TWILIO_NUMBER = "+14439988287"
+TWILIO_ACCOUNT_SID = ""
+TWILIO_AUTH_TOKEN = ""
+TWILIO_NUMBER = ""
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 
