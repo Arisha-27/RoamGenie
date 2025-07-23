@@ -34,30 +34,30 @@ Roamgeni is an AI travel agent designed as a powerful developer tool for orchest
 
 Roamgeni's core features include:
 
-AI Travel Companion Agent (ATCA): Provides real-time itinerary updates, booking tracking, and offers support through WhatsApp, web, or mobile interfaces. It also handles emergency information and offline fallback scenarios.
+1. AI Travel Companion Agent (ATCA): Provides real-time itinerary updates, booking tracking, and offers support through WhatsApp, web, or mobile interfaces. It also handles emergency information and offline fallback scenarios.
 
-AI Inquiry Call Agent (AICA): A multilingual IVR voice bot designed to assist with bookings, refunds, and escalations.
-
-
-Search & Data Retrieval: Utilizes SerpApi for efficient search data collection, crucial for finding flights and other travel-related information.
+2. AI Inquiry Call Agent (AICA): A multilingual IVR voice bot designed to assist with bookings, refunds, and escalations.
 
 
-Text & Document Analysis: Implements OCR for extracting information from images and documents, such as passport scans.
+3. Search & Data Retrieval: Utilizes SerpApi for efficient search data collection, crucial for finding flights and other travel-related information.
 
 
-Communication Workflows: Integrates Twilio for notifications and IVR systems to enhance customer interactions, supporting features like IVR calls and emergency alerts.
+4. Text & Document Analysis: Implements OCR for extracting information from images and documents, such as passport scans.
 
 
-Orchestration Hub: Acts as the central coordinator for data acquisition, processing, and alerts.
+5. Communication Workflows: Integrates Twilio for notifications and IVR systems to enhance customer interactions, supporting features like IVR calls and emergency alerts.
 
 
-Travel & Customer Support: Supports travel data management and multilingual customer service solutions.
+6. Orchestration Hub: Acts as the central coordinator for data acquisition, processing, and alerts.
 
-Passport Scan: Integrates functionality for uploading and scanning passport photos to discover visa-free travel destinations.
 
-Emergency & Offline Support: Features simulation for flight cancellation alerts and offline fallback messages via WhatsApp.
+7. Travel & Customer Support: Supports travel data management and multilingual customer service solutions.
 
-CRM Integration: Provides a contact form to save user information into a CRM system (Vendasta in this case)
+8. Passport Scan: Integrates functionality for uploading and scanning passport photos to discover visa-free travel destinations.
+
+9. Emergency & Offline Support: Features simulation for flight cancellation alerts and offline fallback messages via WhatsApp.
+
+10. CRM Integration: Provides a contact form to save user information into a CRM system (Vendasta in this case)
 
 -----
 
