@@ -1,8 +1,5 @@
-Based on the provided screenshots, here's a comprehensive document for "Roamgeni," structured like a typical README or project documentation.
 
------
-
-# ROAMGENI
+# ROAMGENIE
 
 *Empowering Seamless Automation for Limitless Possibilities*
 
