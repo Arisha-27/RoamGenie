@@ -695,7 +695,7 @@ elif st.session_state.current_page == "Passport":
 
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Passport", use_column_width=True)
+            st.image(image, caption="Uploaded Passport", use_container_width=True)
 
             if st.button("Scan Passport"):
                 with st.spinner("Scanning passport..."):
