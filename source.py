@@ -523,7 +523,7 @@ if st.session_state.current_page == "Travel Plan":
 
     def fetch_flights(source_iata, destination_iata, departure_date_obj, return_date_obj):
         params = {
-            "engine": "Google Flights",
+            "engine": "google_flights",
             "departure_id": source_iata,
             "arrival_id": destination_iata,
             "outbound_date": str(departure_date_obj),
