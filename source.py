@@ -175,7 +175,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 SERPAPI_KEY = "66355d2845f56c30fb460a529e2bba82248673f401a1c98980c39e3200ce4fc2"
-GOOGLE_API_KEY = "AIzaSyAlPE1HGdmnuS_Ytd7PLQ7NQlmuva9pu_M"
+GOOGLE_API_KEY = "AIzaSyDkhruGy8Zikyhn9OKmTRsof4yuTqnkHMI"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 OCR_SPACE_API_KEY = "YOUR_OCR_SPACE_API_KEY"
