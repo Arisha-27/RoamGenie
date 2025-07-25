@@ -1,4 +1,28 @@
+# Streamlit app core
 streamlit>=1.30.0
-serpapi>=0.1.4
+
+# Core Python packages
+pandas
+numpy
+requests
+Pillow
+opencv-python-headless  # Use headless for compatibility on servers
+python-dotenv
+pytesseract
+re  # Not needed here, it's a built-in module
+
+# OCR and image processing
+pytesseract
+
+# Web framework (for IVR server)
+fastapi
+uvicorn
+
+# Twilio for messaging/IVR
+twilio
+
+# AGNO AI platform
 agno>=0.1.8
-python-dotenv>=1.0.1
+
+# Google Search API
+serpapi>=0.1.4
