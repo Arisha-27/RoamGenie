@@ -27,7 +27,7 @@ except KeyError:
     st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-    twilio_token = "6c693db27f21ad86c90aa0e77acca6e4"
+    twilio_token = "2f76a1ddb8dd88a4c4ae87e8f987fb90"
     twilio_number = "+14439988287"
     client = None
 
@@ -875,7 +875,7 @@ elif st.session_state.current_page == "Contact Us":
             st.warning("Please complete all fields.")
 # Twilio credentials
 TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "6c693db27f21ad86c90aa0e77acca6e4"
+TWILIO_AUTH_TOKEN = "2f76a1ddb8dd88a4c4ae87e8f987fb90"
 TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
 client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
