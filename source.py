@@ -27,7 +27,7 @@ except KeyError:
     st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-    twilio_token = "2f76a1ddb8dd88a4c4ae87e8f987fb90"
+    twilio_token = "79422ae124da2c9fb72cb27b8af3bdf7"
     twilio_number = "+14439988287"
     client = None
 
