@@ -535,7 +535,7 @@ if st.session_state.current_page == "Travel Plan":
         search = GoogleSearch(params)
         results = search.get_dict()
         return results
-
+    
     def extract_cheapest_flights(flight_data):
         best_flights = flight_data.get("best_flights", [])
         return sorted(best_flights, key=lambda x: x.get("price", float("inf")))[:3]
@@ -695,7 +695,7 @@ elif st.session_state.current_page == "Passport":
 
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Passport", use_container_width=True)
+            st.image(image, caption="Uploaded Passport", use_column_width=True)
 
             if st.button("Scan Passport"):
                 with st.spinner("Scanning passport..."):
@@ -823,7 +823,7 @@ elif st.session_state.current_page == "Passport":
 elif st.session_state.current_page == "IVR Call":
     st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://35ba70828e62.ngrok-free.app/start-call"
+    FASTAPI_IVR_URL = "https://7da53dd2a6d8.ngrok-free.app/start-call"
 
     user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
 
@@ -875,7 +875,7 @@ elif st.session_state.current_page == "Contact Us":
             st.warning("Please complete all fields.")
 # Twilio credentials
 TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "2f76a1ddb8dd88a4c4ae87e8f987fb90"
+TWILIO_AUTH_TOKEN = "79422ae124da2c9fb72cb27b8af3bdf7"
 TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
 client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
