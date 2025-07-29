@@ -10,7 +10,7 @@ BASE_URL = "https://35ba70828e62.ngrok-free.app"  # Replace with your current ng
 
 # Twilio setup
 TWILIO_ACCOUNT_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "2f76a1ddb8dd88a4c4ae87e8f987fb90"
+TWILIO_AUTH_TOKEN = "10fce4b0ecc25047497dbbbdd485e8a4"
 TWILIO_NUMBER = "+14439988287"
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
