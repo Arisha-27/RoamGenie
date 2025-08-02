@@ -348,7 +348,10 @@ class PassportScanner:
                 passport_data.append(passport_country)
                 destination_data.append(dest_country)
                 requirement_data.append('visa free')
+        
+        
 
+            
         self.visa_data = pd.DataFrame({
             'Passport': passport_data,
             'Destination': destination_data,
@@ -824,6 +827,8 @@ if st.session_state.current_page == "Travel Plan":
         st.write(itinerary.content)
 
         st.success("Travel plan generated successfully!")
+
+
 
 elif st.session_state.current_page == "Passport":
     st.markdown("""
