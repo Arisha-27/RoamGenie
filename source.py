@@ -148,6 +148,63 @@ st.markdown("""
             border-radius: 5px;
             margin-top: 10px;
         }
+        .hotel-card {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+            min-height: 400px;
+        }
+        .hotel-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .hotel-card h3 {
+            margin: 10px 0;
+            color: #2c3e50;
+        }
+        .hotel-card .rating {
+            color: #f39c12;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .hotel-card .reviews {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .hotel-card .amenities {
+            color: #34495e;
+            font-size: 12px;
+            margin: 8px 0;
+        }
+        .hotel-card .price {
+            color: #27ae60;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+        }
+        .hotel-card .per-night {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        .hotel-card .book-hotel-link {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e74c3c;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -300,62 +357,62 @@ class PassportScanner:
 
     def load_country_flags(self):
         self.country_flags = {
-            'Thailand': '', 'Singapore': '', 'Malaysia': '', 'Indonesia': '',
-            'Philippines': '', 'Cambodia': '', 'Laos': '', 'Myanmar': '',
-            'Vietnam': '', 'Brunei': '', 'Nepal': '', 'Bhutan': '',
-            'Maldives': '', 'Sri Lanka': '', 'Bangladesh': '', 'India': '',
-            'Japan': '', 'South Korea': '', 'China': '', 'Taiwan': '',
-            'Hong Kong': '', 'Macau': '', 'Mongolia': '', 'Kazakhstan': '',
-            'Kyrgyzstan': '', 'Tajikistan': '', 'Uzbekistan': '',
+            'Thailand': '🇹🇭', 'Singapore': '🇸🇬', 'Malaysia': '🇲🇾', 'Indonesia': '🇮🇩',
+            'Philippines': '🇵🇭', 'Cambodia': '🇰🇭', 'Laos': '🇱🇦', 'Myanmar': '🇲🇲',
+            'Vietnam': '🇻🇳', 'Brunei': '🇧🇳', 'Nepal': '🇳🇵', 'Bhutan': '🇧🇹',
+            'Maldives': '🇲🇻', 'Sri Lanka': '🇱🇰', 'Bangladesh': '🇧🇩', 'India': '🇮🇳',
+            'Japan': '🇯🇵', 'South Korea': '🇰🇷', 'China': '🇨🇳', 'Taiwan': '🇹🇼',
+            'Hong Kong': '🇭🇰', 'Macau': '🇲🇴', 'Mongolia': '🇲🇳', 'Kazakhstan': '🇰🇿',
+            'Kyrgyzstan': '🇰🇬', 'Tajikistan': '🇹🇯', 'Uzbekistan': '🇺🇿',
 
-            'UAE': '', 'Qatar': '', 'Oman': '', 'Kuwait': '',
-            'Bahrain': '', 'Saudi Arabia': '', 'Jordan': '', 'Lebanon': '',
-            'Syria': '', 'Iraq': '', 'Iran': '', 'Israel': '',
-            'Turkey': '', 'Cyprus': '', 'Armenia': '', 'Georgia': '',
+            'UAE': '🇦🇪', 'Qatar': '🇶🇦', 'Oman': '🇴🇲', 'Kuwait': '🇰🇼',
+            'Bahrain': '🇧🇭', 'Saudi Arabia': '🇸🇦', 'Jordan': '🇯🇴', 'Lebanon': '🇱🇧',
+            'Syria': '🇸🇾', 'Iraq': '🇮🇶', 'Iran': '🇮🇷', 'Israel': '🇮🇱',
+            'Turkey': '🇹🇷', 'Cyprus': '🇨🇾', 'Armenia': '🇦🇲', 'Georgia': '🇬🇪',
 
-            'United Kingdom': '', 'Ireland': '', 'France': '', 'Germany': '',
-            'Italy': '', 'Spain': '', 'Portugal': '', 'Netherlands': '',
-            'Belgium': '', 'Luxembourg': '', 'Switzerland': '', 'Austria': '',
-            'Denmark': '', 'Sweden': '', 'Norway': '', 'Finland': '',
-            'Iceland': '', 'Greece': '', 'Malta': '', 'Poland': '',
-            'Czech Republic': '', 'Slovakia': '', 'Hungary': '',
-            'Slovenia': '', 'Croatia': '', 'Bosnia and Herzegovina': '',
-            'Serbia': '', 'Montenegro': '', 'Albania': '',
-            'North Macedonia': '', 'Bulgaria': '', 'Romania': '',
-            'Moldova': '', 'Ukraine': '', 'Belarus': '', 'Russia': '',
-            'Estonia': '', 'Latvia': '', 'Lithuania': '',
+            'United Kingdom': '🇬🇧', 'Ireland': '🇮🇪', 'France': '🇫🇷', 'Germany': '🇩🇪',
+            'Italy': '🇮🇹', 'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Netherlands': '🇳🇱',
+            'Belgium': '🇧🇪', 'Luxembourg': '🇱🇺', 'Switzerland': '🇨🇭', 'Austria': '🇦🇹',
+            'Denmark': '🇩🇰', 'Sweden': '🇸🇪', 'Norway': '🇳🇴', 'Finland': '🇫🇮',
+            'Iceland': '🇮🇸', 'Greece': '🇬🇷', 'Malta': '🇲🇹', 'Poland': '🇵🇱',
+            'Czech Republic': '🇨🇿', 'Slovakia': '🇸🇰', 'Hungary': '🇭🇺',
+            'Slovenia': '🇸🇮', 'Croatia': '🇭🇷', 'Bosnia and Herzegovina': '🇧🇦',
+            'Serbia': '🇷🇸', 'Montenegro': '🇲🇪', 'Albania': '🇦🇱',
+            'North Macedonia': '🇲🇰', 'Bulgaria': '🇧🇬', 'Romania': '🇷🇴',
+            'Moldova': '🇲🇩', 'Ukraine': '🇺🇦', 'Belarus': '🇧🇾', 'Russia': '🇷🇺',
+            'Estonia': '🇪🇪', 'Latvia': '🇱🇻', 'Lithuania': '🇱🇹',
 
-            'United States': '', 'Canada': '', 'Mexico': '', 'Guatemala': '',
-            'Belize': '', 'El Salvador': '', 'Honduras': '', 'Nicaragua': '',
-            'Costa Rica': '', 'Panama': '', 'Colombia': '', 'Venezuela': '',
-            'Guyana': '', 'Suriname': '', 'Brazil': '', 'Ecuador': '',
-            'Peru': '', 'Bolivia': '', 'Paraguay': '', 'Uruguay': '',
-            'Argentina': '', 'Chile': '', 'Cuba': '', 'Jamaica': '',
-            'Haiti': '', 'Dominican Republic': '', 'Puerto Rico': '',
-            'Trinidad and Tobago': '', 'Barbados': '', 'Saint Lucia': '',
-            'Grenada': '', 'Saint Vincent and the Grenadines': '',
-            'Saint Kitts and Nevis': '', 'Dominica': '',
+            'United States': '🇺🇸', 'Canada': '🇨🇦', 'Mexico': '🇲🇽', 'Guatemala': '🇬🇹',
+            'Belize': '🇧🇿', 'El Salvador': '🇸🇻', 'Honduras': '🇭🇳', 'Nicaragua': '🇳🇮',
+            'Costa Rica': '🇨🇷', 'Panama': '🇵🇦', 'Colombia': '🇨🇴', 'Venezuela': '🇻🇪',
+            'Guyana': '🇬🇾', 'Suriname': '🇸🇷', 'Brazil': '🇧🇷', 'Ecuador': '🇪🇨',
+            'Peru': '🇵🇪', 'Bolivia': '🇧🇴', 'Paraguay': '🇵🇾', 'Uruguay': '🇺🇾',
+            'Argentina': '🇦🇷', 'Chile': '🇨🇱', 'Cuba': '🇨🇺', 'Jamaica': '🇯🇲',
+            'Haiti': '🇭🇹', 'Dominican Republic': '🇩🇴', 'Puerto Rico': '🇵🇷',
+            'Trinidad and Tobago': '🇹🇹', 'Barbados': '🇧🇧', 'Saint Lucia': '🇱🇨',
+            'Grenada': '🇬🇩', 'Saint Vincent and the Grenadines': '🇻🇨',
+            'Saint Kitts and Nevis': '🇰🇳', 'Dominica': '🇩🇲',
 
-            'Morocco': '', 'Algeria': '', 'Tunisia': '', 'Libya': '',
-            'Egypt': '', 'Sudan': '', 'Ethiopia': '', 'Kenya': '',
-            'Uganda': '', 'Tanzania': '', 'Rwanda': '', 'Burundi': '',
-            'Somalia': '', 'Djibouti': '', 'Madagascar': '', 'Mauritius': '',
-            'Seychelles': '', 'Comoros': '', 'South Africa': '',
-            'Namibia': '', 'Botswana': '', 'Zimbabwe': '', 'Zambia': '',
-            'Mozambique': '', 'Malawi': '', 'Angola': '', 'Ghana': '',
-            'Nigeria': '', 'Senegal': '', 'Mali': '', 'Burkina Faso': '',
-            'Niger': '', 'Chad': '', 'Cameroon': '', 'Central African Republic': '',
-            'Democratic Republic of the Congo': '', 'Republic of the Congo': '',
-            'Gabon': '', 'Equatorial Guinea': '', 'Sao Tome and Principe': '',
-            'Cape Verde': '', 'Guinea-Bissau': '', 'Guinea': '',
-            'Sierra Leone': '', 'Liberia': '', 'Ivory Coast': '', 'Togo': '',
-            'Benin': '',
+            'Morocco': '🇲🇦', 'Algeria': '🇩🇿', 'Tunisia': '🇹🇳', 'Libya': '🇱🇾',
+            'Egypt': '🇪🇬', 'Sudan': '🇸🇩', 'Ethiopia': '🇪🇹', 'Kenya': '🇰🇪',
+            'Uganda': '🇺🇬', 'Tanzania': '🇹🇿', 'Rwanda': '🇷🇼', 'Burundi': '🇧🇮',
+            'Somalia': '🇸🇴', 'Djibouti': '🇩🇯', 'Madagascar': '🇲🇬', 'Mauritius': '🇲🇺',
+            'Seychelles': '🇸🇨', 'Comoros': '🇰🇲', 'South Africa': '🇿🇦',
+            'Namibia': '🇳🇦', 'Botswana': '🇧🇼', 'Zimbabwe': '🇿🇼', 'Zambia': '🇿🇲',
+            'Mozambique': '🇲🇿', 'Malawi': '🇲🇼', 'Angola': '🇦🇴', 'Ghana': '🇬🇭',
+            'Nigeria': '🇳🇬', 'Senegal': '🇸🇳', 'Mali': '🇲🇱', 'Burkina Faso': '🇧🇫',
+            'Niger': '🇳🇪', 'Chad': '🇹🇩', 'Cameroon': '🇨🇲', 'Central African Republic': '🇨🇫',
+            'Democratic Republic of the Congo': '🇨🇩', 'Republic of the Congo': '🇨🇬',
+            'Gabon': '🇬🇦', 'Equatorial Guinea': '🇬🇶', 'Sao Tome and Principe': '🇸🇹',
+            'Cape Verde': '🇨🇻', 'Guinea-Bissau': '🇬🇼', 'Guinea': '🇬🇳',
+            'Sierra Leone': '🇸🇱', 'Liberia': '🇱🇷', 'Ivory Coast': '🇨🇮', 'Togo': '🇹🇬',
+            'Benin': '🇧🇯',
 
-            'Australia': '', 'New Zealand': '', 'Fiji': '', 'Papua New Guinea': '',
-            'Solomon Islands': '', 'Vanuatu': '', 'New Caledonia': '',
-            'French Polynesia': '', 'Samoa': '', 'Tonga': '', 'Tuvalu': '',
-            'Kiribati': '', 'Nauru': '', 'Palau': '', 'Marshall Islands': '',
-            'Micronesia': '', 'Cook Islands': '', 'Niue': ''
+            'Australia': '🇦🇺', 'New Zealand': '🇳🇿', 'Fiji': '🇫🇯', 'Papua New Guinea': '🇵🇬',
+            'Solomon Islands': '🇸🇧', 'Vanuatu': '🇻🇺', 'New Caledonia': '🇳🇨',
+            'French Polynesia': '🇵🇫', 'Samoa': '🇼🇸', 'Tonga': '🇹🇴', 'Tuvalu': '🇹🇻',
+            'Kiribati': '🇰🇮', 'Nauru': '🇳🇷', 'Palau': '🇵🇼', 'Marshall Islands': '🇲🇭',
+            'Micronesia': '🇫🇲', 'Cook Islands': '🇨🇰', 'Niue': '🇳🇺'
         }
 
     def extract_passport_info_tesseract(self, image_file):
@@ -498,6 +555,10 @@ if st.session_state.current_page == "Travel Plan":
         flight_class = st.radio("Flight Class:", ["Economy", "Business", "First Class"])
         hotel_rating = st.selectbox("Preferred Hotel Rating:", ["Any", "3", "4", "5"])
 
+        # Hotel specific preferences
+        num_guests = st.number_input("Number of Guests:", min_value=1, max_value=10, value=2)
+        num_rooms = st.number_input("Number of Rooms:", min_value=1, max_value=5, value=1)
+
         st.subheader("Packing Checklist")
         packing_list = {
             "Clothes": True,
@@ -535,10 +596,52 @@ if st.session_state.current_page == "Travel Plan":
         search = GoogleSearch(params)
         results = search.get_dict()
         return results
+
+    # Function to fetch hotel data
+    def fetch_hotels(destination, check_in_date, check_out_date, guests=2, rooms=1):
+        params = {
+            "engine": "google_hotels",
+            "q": f"hotels in {destination}",
+            "check_in_date": str(check_in_date),
+            "check_out_date": str(check_out_date),
+            "adults": guests,
+            "rooms": rooms,
+            "currency": "INR",
+            "hl": "en",
+            "api_key": SERPAPI_KEY
+        }
+        search = GoogleSearch(params)
+        results = search.get_dict()
+        return results
     
     def extract_cheapest_flights(flight_data):
         best_flights = flight_data.get("best_flights", [])
         return sorted(best_flights, key=lambda x: x.get("price", float("inf")))[:3]
+
+    # Function to extract top 3 hotels based on rating and price
+    def extract_top_hotels(hotel_data):
+        properties = hotel_data.get("properties", [])
+        if not properties:
+            return []
+        
+        # Filter hotels with valid data and sort by rating (descending) and price (ascending)
+        valid_hotels = []
+        for hotel in properties:
+            if hotel.get("name") and hotel.get("rate_per_night"):
+                # Extract numeric price from rate_per_night
+                rate_str = hotel.get("rate_per_night", {}).get("lowest", "0")
+                try:
+                    # Remove currency symbols and commas, extract number
+                    rate_numeric = int(''.join(filter(str.isdigit, str(rate_str))))
+                    hotel["price_numeric"] = rate_numeric
+                    valid_hotels.append(hotel)
+                except:
+                    continue
+        
+        # Sort by overall_rating (desc) then by price (asc), get top 3
+        sorted_hotels = sorted(valid_hotels, 
+                              key=lambda x: (-float(x.get("overall_rating", 0)), x.get("price_numeric", float("inf"))))[:3]
+        return sorted_hotels
 
     def get_destination_country(iata_code):
         iata_to_country = {
@@ -608,6 +711,10 @@ if st.session_state.current_page == "Travel Plan":
             flight_data = fetch_flights(source, destination, departure_date, return_date)
             cheapest_flights = extract_cheapest_flights(flight_data)
 
+        with st.spinner("Searching for best hotels..."):
+            hotel_data = fetch_hotels(destination, departure_date, return_date, num_guests, num_rooms)
+            top_hotels = extract_top_hotels(hotel_data)
+
         with st.spinner("Researching best attractions & activities..."):
             research_prompt = (
                 f"Research top attractions in {destination} for a {num_days}-day {travel_theme.lower()} trip. "
@@ -627,7 +734,7 @@ if st.session_state.current_page == "Travel Plan":
                 f"Create a {num_days}-day travel itinerary to {destination} for a {travel_theme.lower()} trip. "
                 f"Preferences: {activity_preferences}. Budget: {budget}. Class: {flight_class}. Rating: {hotel_rating}. "
                 f"Research: {research_results.content}. Flights: {json.dumps(cheapest_flights)}. "
-                f"Hotels & Restaurants: {hotel_restaurant_results.content}."
+                f"Hotels: {json.dumps(top_hotels)}. Restaurants: {hotel_restaurant_results.content}."
             )
             itinerary = planner.run(planning_prompt, stream=False)
 
@@ -667,7 +774,50 @@ if st.session_state.current_page == "Travel Plan":
         else:
             st.warning("No flight data available.")
 
-        st.subheader("Hotels & Restaurants")
+        # Display Hotel Results
+        st.subheader("Top Hotel Recommendations")
+        if top_hotels:
+            cols = st.columns(len(top_hotels))
+            for idx, hotel in enumerate(top_hotels):
+                with cols[idx]:
+                    hotel_name = hotel.get("name", "Unknown Hotel")
+                    hotel_image = hotel.get("images", [{}])[0].get("thumbnail", "")
+                    rating = hotel.get("overall_rating", "N/A")
+                    reviews_count = hotel.get("reviews", 0)
+                    rate_per_night = hotel.get("rate_per_night", {}).get("lowest", "N/A")
+                    extracted_price = hotel.get("rate_per_night", {}).get("extracted_lowest", "N/A")
+                    
+                    # Get hotel link for booking
+                    hotel_link = hotel.get("link", "#")
+                    if hotel_link == "#":
+                        # Generate a search link if direct link not available
+                        hotel_search_query = hotel_name.replace(" ", "+") + "+" + destination.replace(" ", "+")
+                        hotel_link = f"https://www.google.com/travel/hotels/{destination}?q={hotel_search_query}"
+                    
+                    # Hotel amenities
+                    amenities = hotel.get("amenities", [])
+                    amenities_text = ", ".join(amenities[:3]) if amenities else "Standard Amenities"
+                    
+                    # Hotel card layout using CSS classes
+                    st.markdown(
+                        f"""
+                        <div class="hotel-card">
+                            <img src="{hotel_image}" alt="Hotel Image" />
+                            <h3>{hotel_name}</h3>
+                            <div class="rating">⭐ {rating}</div>
+                            <div class="reviews">({reviews_count} reviews)</div>
+                            <div class="amenities">{amenities_text}</div>
+                            <div class="price">₹{extracted_price}</div>
+                            <div class="per-night">per night</div>
+                            <a href="{hotel_link}" target="_blank" class="book-hotel-link">🏨 Book Hotel</a>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+        else:
+            st.warning("No hotel data available.")
+
+        st.subheader("Restaurants & Local Experiences")
         st.write(hotel_restaurant_results.content)
 
         st.subheader("Your Personalized Itinerary")
@@ -858,7 +1008,7 @@ elif st.session_state.current_page == "Contact Us":
         }
         try:
             res = requests.post(
-                "https://automations.businessapp.io/start/6505/617ccb6d-8cd0-4c1d-a45f-8272170381ca",
+                "https://automations.businessapp.io/start/LCZN/75206877-c089-4a69-a881-9df69c75ff71",
                 json=payload
             )
             if res.status_code == 200:
@@ -873,11 +1023,12 @@ elif st.session_state.current_page == "Contact Us":
             send_to_vendasta(first_name, last_name, email, phone)
         else:
             st.warning("Please complete all fields.")
-# Twilio credentials
+
+# Twilio credentials for Emergency & Offline Support
 TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
 TWILIO_AUTH_TOKEN = "10fce4b0ecc25047497dbbbdd485e8a4"
-TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
-client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
+TWILIO_WHATSAPP = "whatsapp:+14155238886"  # Twilio sandbox number
+emergency_client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
 st.markdown("## 🛡️ Emergency & Offline Support")
 
@@ -889,7 +1040,7 @@ with col1:
     if st.button("🚨 Simulate Flight Cancellation Alert"):
         if user_whatsapp.startswith("+91") and len(user_whatsapp) == 13:
             try:
-                message = client.messages.create(
+                message = emergency_client.messages.create(
                     from_=TWILIO_WHATSAPP,
                     to=f"whatsapp:{user_whatsapp}",
                     body="🚨 [Emergency] Your flight AI302 has been CANCELLED. Please check your email for rebooking or call +91-9999999999 for help."
@@ -904,7 +1055,7 @@ with col2:
     if st.button("📴 Simulate Offline Fallback"):
         st.info("It seems you're offline or unable to access live assistance.")
         try:
-            message = client.messages.create(
+            message = emergency_client.messages.create(
                 from_=TWILIO_WHATSAPP,
                 to=f"whatsapp:{user_whatsapp}",
                 body="📴 [Fallback] Our systems are temporarily offline. For urgent help, call +91-9999999999 or visit your nearest airline office."
