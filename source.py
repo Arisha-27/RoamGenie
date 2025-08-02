@@ -585,22 +585,22 @@ if st.session_state.current_page == "Travel Plan":
         except:
             return "N/A"
 
-    def fetch_flights(source_iata, destination_iata, departure_date_obj, return_date_obj):
-        params = {
-            "engine": "google_flights",
-            "departure_id": source_iata,
-            "arrival_id": destination_iata,
-            "outbound_date": str(departure_date_obj),
-            "return_date": str(return_date_obj),
-            "currency": "INR",
-            "hl": "en",
-            "api_key": SERPAPI_KEY
-        }
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        return results
+def fetch_flights(source_iata, destination_iata, departure_date_obj, return_date_obj):
+    params = {
+        "engine": "google_flights",
+        "departure_id": source_iata,
+        "arrival_id": destination_iata,
+        "outbound_date": str(departure_date_obj),
+        "return_date": str(return_date_obj),
+        "currency": "INR",
+        "hl": "en",
+        "api_key": SERPAPI_KEY
+    }
+    search = GoogleSearch(params)
+    results = search.get_dict()
+    return results
 
-    # Function to fetch hotel data
+# Function to fetch hotel data
 def fetch_hotels(destination, check_in_date, check_out_date, guests=2, rooms=1):
     # Map airport codes to actual city names for better hotel search
     airport_to_city = {
@@ -623,38 +623,80 @@ def fetch_hotels(destination, check_in_date, check_out_date, guests=2, rooms=1):
         search_location = destination
     
     try:
+        # Add error handling and debugging
+        st.write(f"🔍 Debug: Searching for hotels in '{search_location}'")
+        st.write(f"📅 Check-in: {check_in_date}, Check-out: {check_out_date}")
+        
         params = {
             "engine": "google_hotels",
-            "q": search_location,  # Use clean city name
+            "q": search_location,
             "check_in_date": str(check_in_date),
             "check_out_date": str(check_out_date),
             "adults": guests,
             "rooms": rooms,
             "currency": "INR",
             "hl": "en",
-            "gl": "in",  # Geographic location India
+            "gl": "in",
             "api_key": SERPAPI_KEY
         }
+        
+        # Debug: Show API parameters (remove API key from display)
+        debug_params = params.copy()
+        debug_params["api_key"] = "***HIDDEN***"
+        st.write(f"🔧 Debug: API Parameters: {debug_params}")
+        
         search = GoogleSearch(params)
         results = search.get_dict()
         
-        # Filter out vacation rentals and keep only hotels
+        # Debug: Show raw results structure
+        st.write(f"📊 Debug: API Response keys: {list(results.keys())}")
+        
+        # Check for errors in the API response
+        if "error" in results:
+            st.error(f"SerpAPI Error: {results['error']}")
+            return {"properties": []}
+        
+        # Get properties with better error handling
         properties = results.get("properties", [])
+        
+        if not properties:
+            st.warning(f"⚠️ No properties found in API response for {search_location}")
+            # Try alternative search without date restrictions
+            fallback_params = {
+                "engine": "google_hotels",
+                "q": search_location,
+                "currency": "INR",
+                "hl": "en",
+                "gl": "in",
+                "api_key": SERPAPI_KEY
+            }
+            st.info("🔄 Trying fallback search without dates...")
+            fallback_search = GoogleSearch(fallback_params)
+            fallback_results = fallback_search.get_dict()
+            properties = fallback_results.get("properties", [])
+        
+        # Filter out vacation rentals and keep only hotels
         hotel_properties = []
         
         for prop in properties:
             prop_type = prop.get("type", "").lower()
+            # Be more lenient with property types
             if prop_type not in ["vacation rental", "apartment", "house", "condo", "villa"]:
                 hotel_properties.append(prop)
         
-        # Update results with filtered properties
-        results["properties"] = hotel_properties
+        # If still no hotels, be even more lenient
+        if not hotel_properties and properties:
+            st.info("🏨 Using all available properties (including vacation rentals)")
+            hotel_properties = properties[:6]  # Limit to first 6
         
-        st.success(f"Found {len(hotel_properties)} hotels in {search_location}")
-        return results
+        st.success(f"✅ Found {len(hotel_properties)} properties in {search_location}")
+        return {"properties": hotel_properties}
         
     except Exception as e:
-        st.error(f"Error fetching hotels: {str(e)}")
+        st.error(f"❌ Error fetching hotels: {str(e)}")
+        st.error(f"🔍 Error type: {type(e).__name__}")
+        
+        # Return empty but valid structure
         return {"properties": []}
 
 def extract_cheapest_flights(flight_data):
@@ -662,38 +704,204 @@ def extract_cheapest_flights(flight_data):
     return sorted(best_flights, key=lambda x: x.get("price", float("inf")))[:3]
 
 def extract_top_hotels(hotel_data):
+    """Extract and sort hotels with better error handling"""
     try:
         properties = hotel_data.get("properties", [])
+        
         if not properties:
+            st.warning("⚠️ No hotel properties found in data")
             return []
         
-        # Filter hotels with valid data and sort by rating (descending) and price (ascending)
-        valid_hotels = []
-        for hotel in properties:
-            if hotel.get("name") and hotel.get("rate_per_night"):
-                # Extract numeric price from rate_per_night
-                rate_str = hotel.get("rate_per_night", {}).get("lowest", "0")
-                try:
-                    # Handle different price formats
-                    if isinstance(rate_str, (int, float)):
-                        rate_numeric = float(rate_str)
-                    else:
-                        # Remove currency symbols, commas, and extract number
-                        rate_clean = ''.join(filter(lambda x: x.isdigit() or x == '.', str(rate_str)))
-                        rate_numeric = float(rate_clean) if rate_clean else 0
-                    
-                    hotel["price_numeric"] = rate_numeric
-                    valid_hotels.append(hotel)
-                except (ValueError, TypeError):
-                    continue
+        st.write(f"🏪 Processing {len(properties)} properties...")
         
-        # Sort by overall_rating (desc) then by price (asc), get top 3
-        sorted_hotels = sorted(valid_hotels, 
-                              key=lambda x: (-float(x.get("overall_rating", 0)), x.get("price_numeric", float("inf"))))[:3]
-        return sorted_hotels
+        # Filter hotels with valid data
+        valid_hotels = []
+        
+        for i, hotel in enumerate(properties):
+            try:
+                # Basic validation
+                hotel_name = hotel.get("name", f"Property {i+1}")
+                
+                # Handle different price structures
+                price_numeric = 0
+                rate_info = hotel.get("rate_per_night", {})
+                
+                if rate_info:
+                    # Try different price fields
+                    price_str = (rate_info.get("extracted_lowest") or 
+                               rate_info.get("lowest") or 
+                               rate_info.get("rate") or "0")
+                    
+                    try:
+                        # Extract numeric value from price string
+                        if isinstance(price_str, (int, float)):
+                            price_numeric = float(price_str)
+                        else:
+                            # Remove currency symbols and extract numbers
+                            import re
+                            numbers = re.findall(r'\d+\.?\d*', str(price_str).replace(',', ''))
+                            if numbers:
+                                price_numeric = float(numbers[0])
+                    except (ValueError, TypeError, IndexError):
+                        price_numeric = 0
+                
+                # Add processed data
+                hotel["price_numeric"] = price_numeric
+                hotel["processed_name"] = hotel_name
+                
+                # Only add hotels with names
+                if hotel_name and hotel_name != "Property":
+                    valid_hotels.append(hotel)
+                    
+            except Exception as hotel_error:
+                st.warning(f"⚠️ Error processing hotel {i}: {hotel_error}")
+                continue
+        
+        st.write(f"✅ {len(valid_hotels)} valid hotels after processing")
+        
+        if not valid_hotels:
+            return []
+        
+        # Sort by rating (desc) then by price (asc)
+        try:
+            sorted_hotels = sorted(
+                valid_hotels, 
+                key=lambda x: (
+                    -float(x.get("overall_rating", 0) or 0), 
+                    x.get("price_numeric", float("inf"))
+                )
+            )[:6]  # Get top 6 instead of 3 for better selection
+            
+            st.success(f"🎯 Returning top {len(sorted_hotels)} hotels")
+            return sorted_hotels
+            
+        except Exception as sort_error:
+            st.error(f"❌ Error sorting hotels: {sort_error}")
+            # Return first few hotels without sorting
+            return valid_hotels[:3]
+            
     except Exception as e:
-        st.error(f"Error extracting hotels: {str(e)}")
+        st.error(f"❌ Error extracting hotels: {str(e)}")
         return []
+    
+def display_hotels_safely(top_hotels):
+    """Display hotels with comprehensive error handling"""
+    
+    if not top_hotels:
+        st.warning("😔 No hotels available to display")
+        
+        with st.expander("🔧 Troubleshooting Tips"):
+            st.write("""
+            **Possible reasons:**
+            - API quota exceeded
+            - Invalid destination
+            - Network connectivity issues
+            - Date format problems
+            
+            **Try:**
+            - Use city name instead of airport code
+            - Check your internet connection
+            - Try different dates
+            - Contact support if issue persists
+            """)
+        return
+    
+    st.subheader(f"🏨 Top {len(top_hotels)} Hotel Recommendations")
+    
+    # Display hotels in columns
+    num_hotels = min(len(top_hotels), 3)
+    cols = st.columns(num_hotels)
+    
+    for idx, hotel in enumerate(top_hotels[:3]):
+        with cols[idx]:
+            try:
+                # Safe data extraction with fallbacks
+                hotel_name = hotel.get("processed_name") or hotel.get("name", f"Hotel {idx+1}")
+                
+                # Image handling
+                hotel_images = hotel.get("images", [])
+                hotel_image = ""
+                if hotel_images and isinstance(hotel_images, list) and len(hotel_images) > 0:
+                    first_image = hotel_images[0]
+                    if isinstance(first_image, dict):
+                        hotel_image = first_image.get("thumbnail", "") or first_image.get("original", "")
+                
+                # Display image or placeholder
+                if hotel_image and hotel_image.startswith("http"):
+                    try:
+                        st.image(hotel_image, width=300, caption=hotel_name)
+                    except:
+                        st.info("🏨 Image unavailable")
+                else:
+                    st.info("🏨 No image available")
+                
+                # Hotel name
+                st.markdown(f"**{hotel_name}**")
+                
+                # Rating with safe conversion
+                rating = hotel.get("overall_rating")
+                reviews_count = hotel.get("reviews", 0)
+                
+                if rating:
+                    try:
+                        rating_float = float(rating)
+                        if rating_float > 0:
+                            st.write(f"⭐ **{rating_float}/5** ({reviews_count} reviews)")
+                    except (ValueError, TypeError):
+                        if reviews_count > 0:
+                            st.write(f"📝 {reviews_count} reviews")
+                
+                # Price display
+                price_numeric = hotel.get("price_numeric", 0)
+                if price_numeric > 0:
+                    st.write(f"💰 **₹{price_numeric:,.0f}** per night")
+                else:
+                    # Try alternative price fields
+                    rate_info = hotel.get("rate_per_night", {})
+                    if rate_info:
+                        price_display = rate_info.get("extracted_lowest") or rate_info.get("lowest", "Contact for price")
+                        st.write(f"💰 **{price_display}**")
+                    else:
+                        st.write("💰 **Contact for price**")
+                
+                # Hotel type
+                hotel_type = hotel.get("type", "Hotel").title()
+                st.write(f"🏢 *{hotel_type}*")
+                
+                # Amenities
+                amenities = hotel.get("amenities", [])
+                if amenities and isinstance(amenities, list):
+                    amenities_text = ", ".join(amenities[:3])
+                    st.write(f"🎯 {amenities_text}")
+                
+                # Booking link
+                hotel_link = hotel.get("link", "")
+                if not hotel_link:
+                    # Create Google search link as fallback
+                    hotel_search_query = hotel_name.replace(" ", "+")
+                    hotel_link = f"https://www.google.com/search?q={hotel_search_query}+hotel+booking"
+                
+                st.link_button("🔗 View Details", hotel_link)
+                
+                # Additional details in expander
+                with st.expander("ℹ️ More Details"):
+                    if hotel.get("neighborhood"):
+                        st.write(f"📍 **Location:** {hotel.get('neighborhood')}")
+                    
+                    if len(amenities) > 3:
+                        st.write(f"🏨 **All Amenities:** {', '.join(amenities)}")
+                    
+                    description = hotel.get("description", "")
+                    if description:
+                        st.write(f"📋 **Description:** {description}")
+                    
+                    # Debug info (remove in production)
+                    if st.checkbox(f"🔧 Debug Hotel {idx+1}", key=f"debug_hotel_{idx}"):
+                        st.json(hotel)
+                
+            except Exception as hotel_display_error:
+                st.error(f"❌ Error displaying hotel {idx+1}: {hotel_display_error}")
+                st.write("🏨 Hotel information unavailable")
 
 def get_destination_country(iata_code):
     iata_to_country = {
@@ -763,9 +971,17 @@ if st.button("Generate Travel Plan"):
         flight_data = fetch_flights(source, destination, departure_date, return_date)
         cheapest_flights = extract_cheapest_flights(flight_data)
 
-    with st.spinner("Searching for best hotels..."):
-        hotel_data = fetch_hotels(destination, departure_date, return_date, num_guests, num_rooms)
-        top_hotels = extract_top_hotels(hotel_data)
+    with st.spinner("🔍 Searching for the best hotels..."):
+        try:
+            hotel_data = fetch_hotels(destination, departure_date, return_date, num_guests, num_rooms)
+            top_hotels = extract_top_hotels(hotel_data)
+            
+            # Display hotels using the safe function
+            display_hotels_safely(top_hotels)
+            
+        except Exception as hotel_error:
+            st.error(f"❌ Hotel search failed: {hotel_error}")
+            st.info("🏨 Please try manual hotel search or contact support")
 
     with st.spinner("Researching best attractions & activities..."):
         research_prompt = (
@@ -827,89 +1043,102 @@ if st.button("Generate Travel Plan"):
         st.warning("No flight data available.")
 
     # Enhanced Hotel Display Results - Using Native Streamlit Components
-    st.subheader("Top Hotel Recommendations")
-    if top_hotels:
-        # Create columns based on number of hotels (max 3 for better layout)
-        num_hotels = min(len(top_hotels), 3)
-        cols = st.columns(num_hotels)
-        
-        for idx, hotel in enumerate(top_hotels[:3]):
-            with cols[idx]:
-                # Extract hotel data with fallbacks
-                hotel_name = hotel.get("name", "Unknown Hotel")
+    st.subheader(f"🏨 Top {len(top_hotels)} Hotel Recommendations")
+    
+    # Display hotels in columns
+    num_hotels = min(len(top_hotels), 3)
+    cols = st.columns(num_hotels)
+    
+    for idx, hotel in enumerate(top_hotels[:3]):
+        with cols[idx]:
+            try:
+                # Safe data extraction with fallbacks
+                hotel_name = hotel.get("processed_name") or hotel.get("name", f"Hotel {idx+1}")
+                
+                # Image handling
                 hotel_images = hotel.get("images", [])
-                hotel_image = hotel_images[0].get("thumbnail", "") if hotel_images else ""
+                hotel_image = ""
+                if hotel_images and isinstance(hotel_images, list) and len(hotel_images) > 0:
+                    first_image = hotel_images[0]
+                    if isinstance(first_image, dict):
+                        hotel_image = first_image.get("thumbnail", "") or first_image.get("original", "")
                 
-                # Rating and reviews
-                rating = hotel.get("overall_rating", "N/A")
-                reviews_count = hotel.get("reviews", 0)
-                
-                # Price handling
-                price_numeric = hotel.get("price_numeric", 0)
-                rate_per_night = hotel.get("rate_per_night", {})
-                extracted_price = rate_per_night.get("extracted_lowest") or rate_per_night.get("lowest", "N/A")
-                
-                # Display hotel using native Streamlit components
-                if hotel_image:
-                    st.image(hotel_image, width=300)
+                # Display image or placeholder
+                if hotel_image and hotel_image.startswith("http"):
+                    try:
+                        st.image(hotel_image, width=300, caption=hotel_name)
+                    except:
+                        st.info("🏨 Image unavailable")
                 else:
                     st.info("🏨 No image available")
                 
+                # Hotel name
                 st.markdown(f"**{hotel_name}**")
                 
-                # Rating
-                if rating != "N/A":
-                    st.write(f"⭐ **{rating}/5** ({reviews_count} reviews)")
+                # Rating with safe conversion
+                rating = hotel.get("overall_rating")
+                reviews_count = hotel.get("reviews", 0)
                 
-                # Price
+                if rating:
+                    try:
+                        rating_float = float(rating)
+                        if rating_float > 0:
+                            st.write(f"⭐ **{rating_float}/5** ({reviews_count} reviews)")
+                    except (ValueError, TypeError):
+                        if reviews_count > 0:
+                            st.write(f"📝 {reviews_count} reviews")
+                
+                # Price display
+                price_numeric = hotel.get("price_numeric", 0)
                 if price_numeric > 0:
-                    st.write(f"**₹{price_numeric:,.0f}** per night")
-                elif extracted_price != "N/A":
-                    st.write(f"**₹{extracted_price}** per night")
+                    st.write(f"💰 **₹{price_numeric:,.0f}** per night")
                 else:
-                    st.write("**Contact Hotel** for price")
+                    # Try alternative price fields
+                    rate_info = hotel.get("rate_per_night", {})
+                    if rate_info:
+                        price_display = rate_info.get("extracted_lowest") or rate_info.get("lowest", "Contact for price")
+                        st.write(f"💰 **{price_display}**")
+                    else:
+                        st.write("💰 **Contact for price**")
                 
                 # Hotel type
-                hotel_type = hotel.get("type", "Hotel")
-                st.write(f"*{hotel_type}*")
+                hotel_type = hotel.get("type", "Hotel").title()
+                st.write(f"🏢 *{hotel_type}*")
                 
                 # Amenities
                 amenities = hotel.get("amenities", [])
-                if amenities:
-                    st.write(f"🏨 {', '.join(amenities[:3])}")
+                if amenities and isinstance(amenities, list):
+                    amenities_text = ", ".join(amenities[:3])
+                    st.write(f"🎯 {amenities_text}")
                 
                 # Booking link
                 hotel_link = hotel.get("link", "")
                 if not hotel_link:
+                    # Create Google search link as fallback
                     hotel_search_query = hotel_name.replace(" ", "+")
-                    destination_query = destination.replace(" ", "+")
-                    hotel_link = f"https://www.google.com/travel/hotels?q={hotel_search_query}+{destination_query}"
+                    hotel_link = f"https://www.google.com/search?q={hotel_search_query}+hotel+booking"
                 
-                st.link_button("🏨 Book Hotel", hotel_link)
+                st.link_button("🔗 View Details", hotel_link)
                 
-                # More details in expander
-                with st.expander(f"More details"):
+                # Additional details in expander
+                with st.expander("ℹ️ More Details"):
                     if hotel.get("neighborhood"):
-                        st.write(f"**Location:** {hotel.get('neighborhood')}")
+                        st.write(f"📍 **Location:** {hotel.get('neighborhood')}")
                     
                     if len(amenities) > 3:
-                        st.write(f"**All Amenities:** {', '.join(amenities)}")
+                        st.write(f"🏨 **All Amenities:** {', '.join(amenities)}")
                     
-                    if hotel.get("description"):
-                        st.write(f"**Description:** {hotel.get('description')}")
+                    description = hotel.get("description", "")
+                    if description:
+                        st.write(f"📋 **Description:** {description}")
+                    
+                    # Debug info (remove in production)
+                    if st.checkbox(f"🔧 Debug Hotel {idx+1}", key=f"debug_hotel_{idx}"):
+                        st.json(hotel)
                 
-                st.divider()
-
-    else:
-        st.warning("No hotel data available. Please try adjusting your search criteria.")
-        
-        with st.expander("Troubleshooting Tips"):
-            st.write("""
-            - Make sure your destination is spelled correctly
-            - Try using a city name instead of airport code
-            - Check if your dates are valid
-            - Verify your API key is working
-            """)
+            except Exception as hotel_display_error:
+                st.error(f"❌ Error displaying hotel {idx+1}: {hotel_display_error}")
+                st.write("🏨 Hotel information unavailable")
 
     st.subheader("Restaurants & Local Experiences")
     st.write(hotel_restaurant_results.content)
