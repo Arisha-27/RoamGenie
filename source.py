@@ -27,7 +27,7 @@ except KeyError:
     st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-    twilio_token = "10fce4b0ecc25047497dbbbdd485e8a4"
+    twilio_token = "387373d055a92651efe50091755bb82f"
     twilio_number = "+14439988287"
     client = None
 
@@ -850,13 +850,9 @@ if st.button("Generate Travel Plan"):
                 extracted_price = rate_per_night.get("extracted_lowest") or rate_per_night.get("lowest", "N/A")
                 
                 # Display hotel using native Streamlit components
-                if not hotel_image or not hotel_image.startswith("http"):
-                    hotel_image = "https://via.placeholder.com/300x200?text=No+Image"
-                    
-                if hotel_image:
-                    st.image(hotel_image, width=300)
-                else:
-                    st.info("🏨 No image available")
+                # Neutral banner or hotel emoji as a header
+                st.markdown("🏨", unsafe_allow_html=True)
+
                 
                 st.markdown(f"**{hotel_name}**")
                 
@@ -1125,7 +1121,7 @@ elif st.session_state.current_page == "Contact Us":
 
 # Twilio credentials for Emergency & Offline Support
 TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "10fce4b0ecc25047497dbbbdd485e8a4"
+TWILIO_AUTH_TOKEN = "387373d055a92651efe50091755bb82f"
 TWILIO_WHATSAPP = "whatsapp:+14155238886"  # Twilio sandbox number
 emergency_client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
