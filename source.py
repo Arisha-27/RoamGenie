@@ -231,7 +231,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-SERPAPI_KEY = "2d398ac4866275207b7c6d69be063e52f19f68a20226d2b4f7e6dbc1b706406d"
+SERPAPI_KEY = "6099ab3ce6d444269b4784be73361088426295f0498d473fdc72837f347818ba"
 GOOGLE_API_KEY = "AIzaSyDaNY4vgBs5iyp2eGcWfd41mZHB9Rhz1XI"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
@@ -840,10 +840,6 @@ if st.button("Generate Travel Plan"):
                 hotel_images = hotel.get("images", [])
                 hotel_image = hotel_images[0].get("thumbnail", "") if hotel_images else ""
                 
-                # Use placeholder if missing or broken
-                if not hotel_image or not hotel_image.startswith("http"):
-                    hotel_image = "https://via.placeholder.com/300x200?text=No+Image"
-                
                 # Rating and reviews
                 rating = hotel.get("overall_rating", "N/A")
                 reviews_count = hotel.get("reviews", 0)
@@ -854,6 +850,9 @@ if st.button("Generate Travel Plan"):
                 extracted_price = rate_per_night.get("extracted_lowest") or rate_per_night.get("lowest", "N/A")
                 
                 # Display hotel using native Streamlit components
+                if not hotel_image or not hotel_image.startswith("http"):
+                    hotel_image = "https://via.placeholder.com/300x200?text=No+Image"
+                    
                 if hotel_image:
                     st.image(hotel_image, width=300)
                 else:
