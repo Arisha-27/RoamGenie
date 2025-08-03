@@ -516,6 +516,112 @@ if col_nav[3].button("Contact Us", key="nav_contact_us", help="Get in touch with
 st.markdown("---")
 
 # Conditional Content Display
+import streamlit as st
+import json
+from datetime import datetime
+import os
+
+# Add these imports and error handling at the top
+try:
+    from serpapi import GoogleSearch
+except ImportError:
+    st.error("Please install serpapi: pip install google-search-results")
+    st.stop()
+
+try:
+    from phi.agent import Agent
+    from phi.model.gemini import Gemini
+    from phi.tools.serpapi_tools import SerpApiTools
+except ImportError:
+    st.error("Please install phidata: pip install phidata")
+    st.stop()
+
+# Get API key from environment or secrets
+try:
+    SERPAPI_KEY = st.secrets["SERPAPI_KEY"]
+except:
+    SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+    if not SERPAPI_KEY:
+        st.error("Please set SERPAPI_KEY in your Streamlit secrets or environment variables")
+        st.stop()
+
+# Add CSS for flight cards
+st.markdown("""
+<style>
+.flight-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 10px 0;
+    color: white;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.flight-card img {
+    width: 60px;
+    height: 40px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+.flight-card h3 {
+    margin: 10px 0;
+    font-size: 1.2em;
+}
+
+.flight-card .price {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #FFD700;
+    margin: 15px 0;
+}
+
+.book-now-link {
+    background: #FF6B6B;
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.book-now-link:hover {
+    background: #FF5252;
+    transform: translateY(-2px);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize session state variables
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "Travel Plan"
+if 'passport_country' not in st.session_state:
+    st.session_state.passport_country = 'India'
+if 'visa_free_countries' not in st.session_state:
+    st.session_state.visa_free_countries = ['Thailand', 'Singapore', 'Malaysia', 'UAE', 'Nepal']
+
+# Mock passport scanner class for deployment
+class PassportScanner:
+    def __init__(self):
+        self.country_flags = {
+            'Thailand': '🇹🇭',
+            'Singapore': '🇸🇬', 
+            'Malaysia': '🇲🇾',
+            'UAE': '🇦🇪',
+            'Nepal': '🇳🇵',
+            'United Kingdom': '🇬🇧',
+            'France': '🇫🇷',
+            'Germany': '🇩🇪',
+            'Japan': '🇯🇵',
+            'Canada': '🇨🇦'
+        }
+
+passport_scanner = PassportScanner()
+
 if st.session_state.current_page == "Travel Plan":
     st.subheader("Plan Your Adventure")
 
@@ -586,337 +692,370 @@ if st.session_state.current_page == "Travel Plan":
             return "N/A"
 
     def fetch_flights(source_iata, destination_iata, departure_date_obj, return_date_obj):
-        params = {
-            "engine": "google_flights",
-            "departure_id": source_iata,
-            "arrival_id": destination_iata,
-            "outbound_date": str(departure_date_obj),
-            "return_date": str(return_date_obj),
-            "currency": "INR",
-            "hl": "en",
-            "api_key": SERPAPI_KEY
-        }
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        return results
+        try:
+            params = {
+                "engine": "google_flights",
+                "departure_id": source_iata,
+                "arrival_id": destination_iata,
+                "outbound_date": str(departure_date_obj),
+                "return_date": str(return_date_obj),
+                "currency": "INR",
+                "hl": "en",
+                "api_key": SERPAPI_KEY
+            }
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            return results
+        except Exception as e:
+            st.error(f"Error fetching flights: {str(e)}")
+            return {"best_flights": []}
 
     # Function to fetch hotel data
-def fetch_hotels(destination, check_in_date, check_out_date, guests=2, rooms=1):
-    # Map airport codes to actual city names for better hotel search
-    airport_to_city = {
-        'DEL': 'New Delhi', 'BOM': 'Mumbai', 'BLR': 'Bangalore', 
-        'MAA': 'Chennai', 'CCU': 'Kolkata', 'HYD': 'Hyderabad',
-        'GOI': 'Goa', 'JAI': 'Jaipur', 'AMD': 'Ahmedabad', 'COK': 'Kochi',
-        'BKK': 'Bangkok', 'SIN': 'Singapore', 'KUL': 'Kuala Lumpur',
-        'DXB': 'Dubai', 'DOH': 'Doha', 'NRT': 'Tokyo', 'ICN': 'Seoul',
-        'LHR': 'London', 'CDG': 'Paris', 'FRA': 'Frankfurt', 'FCO': 'Rome',
-        'MAD': 'Madrid', 'AMS': 'Amsterdam', 'ZUR': 'Zurich', 'VIE': 'Vienna',
-        'JFK': 'New York', 'LAX': 'Los Angeles', 'YYZ': 'Toronto',
-        'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland'
-    }
-    
-    # Convert airport code to city name if needed
-    if len(destination) == 3 and destination.isupper():
-        search_location = airport_to_city.get(destination.upper(), destination)
-        st.info(f"Searching hotels in {search_location} (from airport code {destination})")
-    else:
-        search_location = destination
-    
-    try:
-        params = {
-            "engine": "google_hotels",
-            "q": search_location,  # Use clean city name
-            "check_in_date": str(check_in_date),
-            "check_out_date": str(check_out_date),
-            "adults": guests,
-            "rooms": rooms,
-            "currency": "INR",
-            "hl": "en",
-            "gl": "in",  # Geographic location India
-            "api_key": SERPAPI_KEY
+    def fetch_hotels(destination, check_in_date, check_out_date, guests=2, rooms=1):
+        # Map airport codes to actual city names for better hotel search
+        airport_to_city = {
+            'DEL': 'New Delhi', 'BOM': 'Mumbai', 'BLR': 'Bangalore', 
+            'MAA': 'Chennai', 'CCU': 'Kolkata', 'HYD': 'Hyderabad',
+            'GOI': 'Goa', 'JAI': 'Jaipur', 'AMD': 'Ahmedabad', 'COK': 'Kochi',
+            'BKK': 'Bangkok', 'SIN': 'Singapore', 'KUL': 'Kuala Lumpur',
+            'DXB': 'Dubai', 'DOH': 'Doha', 'NRT': 'Tokyo', 'ICN': 'Seoul',
+            'LHR': 'London', 'CDG': 'Paris', 'FRA': 'Frankfurt', 'FCO': 'Rome',
+            'MAD': 'Madrid', 'AMS': 'Amsterdam', 'ZUR': 'Zurich', 'VIE': 'Vienna',
+            'JFK': 'New York', 'LAX': 'Los Angeles', 'YYZ': 'Toronto',
+            'SYD': 'Sydney', 'MEL': 'Melbourne', 'AKL': 'Auckland'
         }
-        search = GoogleSearch(params)
-        results = search.get_dict()
         
-        # Filter out vacation rentals and keep only hotels
-        properties = results.get("properties", [])
-        hotel_properties = []
-        
-        for prop in properties:
-            prop_type = prop.get("type", "").lower()
-            if prop_type not in ["vacation rental", "apartment", "house", "condo", "villa"]:
-                hotel_properties.append(prop)
-        
-        # Update results with filtered properties
-        results["properties"] = hotel_properties
-        
-        st.success(f"Found {len(hotel_properties)} hotels in {search_location}")
-        return results
-        
-    except Exception as e:
-        st.error(f"Error fetching hotels: {str(e)}")
-        return {"properties": []}
-
-def extract_cheapest_flights(flight_data):
-    best_flights = flight_data.get("best_flights", [])
-    return sorted(best_flights, key=lambda x: x.get("price", float("inf")))[:3]
-
-def extract_top_hotels(hotel_data):
-    try:
-        properties = hotel_data.get("properties", [])
-        if not properties:
-            return []
-        
-        # Filter hotels with valid data and sort by rating (descending) and price (ascending)
-        valid_hotels = []
-        for hotel in properties:
-            if hotel.get("name") and hotel.get("rate_per_night"):
-                # Extract numeric price from rate_per_night
-                rate_str = hotel.get("rate_per_night", {}).get("lowest", "0")
-                try:
-                    # Handle different price formats
-                    if isinstance(rate_str, (int, float)):
-                        rate_numeric = float(rate_str)
-                    else:
-                        # Remove currency symbols, commas, and extract number
-                        rate_clean = ''.join(filter(lambda x: x.isdigit() or x == '.', str(rate_str)))
-                        rate_numeric = float(rate_clean) if rate_clean else 0
-                    
-                    hotel["price_numeric"] = rate_numeric
-                    valid_hotels.append(hotel)
-                except (ValueError, TypeError):
-                    continue
-        
-        # Sort by overall_rating (desc) then by price (asc), get top 3
-        sorted_hotels = sorted(valid_hotels, 
-                              key=lambda x: (-float(x.get("overall_rating", 0)), x.get("price_numeric", float("inf"))))[:3]
-        return sorted_hotels
-    except Exception as e:
-        st.error(f"Error extracting hotels: {str(e)}")
-        return []
-
-def get_destination_country(iata_code):
-    iata_to_country = {
-        'DEL': 'India', 'BOM': 'India', 'BLR': 'India', 'MAA': 'India',
-        'BKK': 'Thailand', 'SIN': 'Singapore', 'KUL': 'Malaysia',
-        'DXB': 'UAE', 'DOH': 'Qatar', 'KTM': 'Nepal', 'CMB': 'Sri Lanka',
-        'NRT': 'Japan', 'ICN': 'South Korea', 'TPE': 'Taiwan',
-        'LHR': 'United Kingdom', 'CDG': 'France', 'FRA': 'Germany',
-        'FCO': 'Italy', 'MAD': 'Spain', 'AMS': 'Netherlands',
-        'ZUR': 'Switzerland', 'VIE': 'Austria', 'ARN': 'Sweden',
-        'CPH': 'Denmark', 'OSL': 'Norway', 'HEL': 'Finland',
-        'JFK': 'United States', 'LAX': 'United States', 'YYZ': 'Canada',
-        'SYD': 'Australia', 'MEL': 'Australia', 'AKL': 'New Zealand'
-    }
-    return iata_to_country.get(iata_code.upper(), 'Unknown')
-
-researcher = Agent(
-    name="Researcher",
-    instructions=[
-        "Identify destination, research climate, safety, top attractions, and activities.",
-        "Use reliable sources and summarize results clearly."
-    ],
-    model=Gemini(id="gemini-2.0-flash-exp"),
-    tools=[SerpApiTools(api_key=SERPAPI_KEY)],
-    add_datetime_to_instructions=True,
-)
-
-planner = Agent(
-    name="Planner",
-    instructions=[
-        "Create a detailed itinerary with travel preferences, time estimates, and budget alignment."
-    ],
-    model=Gemini(id="gemini-2.0-flash-exp"),
-    add_datetime_to_instructions=True,
-)
-
-hotel_restaurant_finder = Agent(
-    name="Hotel & Restaurant Finder",
-    instructions=[
-        "Find top-rated hotels and restaurants near main attractions. Include booking links if possible."
-    ],
-    model=Gemini(id="gemini-2.0-flash-exp"),
-    tools=[SerpApiTools(api_key=SERPAPI_KEY)],
-    add_datetime_to_instructions=True,
-)
-
-if st.button("Generate Travel Plan"):
-    visa_status = "Unknown"
-    destination_country = get_destination_country(destination)
-
-    if st.session_state.passport_country and st.session_state.visa_free_countries:
-        if destination_country in st.session_state.visa_free_countries:
-            visa_status = "Visa-Free"
-        elif destination_country != 'Unknown':
-            visa_status = "Visa Required"
+        # Convert airport code to city name if needed
+        if len(destination) == 3 and destination.isupper():
+            search_location = airport_to_city.get(destination.upper(), destination)
+            st.info(f"Searching hotels in {search_location} (from airport code {destination})")
         else:
-            visa_status = "Check visa requirements"
-
-    if visa_status == "Visa-Free":
-        st.success(f"Great news! {visa_status} travel to {destination_country}")
-    elif visa_status == "Visa Required":
-        st.warning(f"{visa_status} for {destination_country} - Please check visa requirements")
-    else:
-        st.info(f"{visa_status} for {destination_country}")
-
-    with st.spinner("Fetching best flight options..."):
-        flight_data = fetch_flights(source, destination, departure_date, return_date)
-        cheapest_flights = extract_cheapest_flights(flight_data)
-
-    with st.spinner("Searching for best hotels..."):
-        hotel_data = fetch_hotels(destination, departure_date, return_date, num_guests, num_rooms)
-        top_hotels = extract_top_hotels(hotel_data)
-
-    with st.spinner("Researching best attractions & activities..."):
-        research_prompt = (
-            f"Research top attractions in {destination} for a {num_days}-day {travel_theme.lower()} trip. "
-            f"Interests: {activity_preferences}. Budget: {budget}. Class: {flight_class}. Rating: {hotel_rating}."
-        )
-        research_results = researcher.run(research_prompt, stream=False)
-
-    with st.spinner("Searching for hotels & restaurants..."):
-        hotel_restaurant_prompt = (
-            f"Recommend hotels and restaurants in {destination} for a {travel_theme.lower()} trip. "
-            f"Preferences: {activity_preferences}. Budget: {budget}. Hotel Rating: {hotel_rating}."
-        )
-        hotel_restaurant_results = hotel_restaurant_finder.run(hotel_restaurant_prompt, stream=False)
-
-    with st.spinner("Creating itinerary..."):
-        planning_prompt = (
-            f"Create a {num_days}-day travel itinerary to {destination} for a {travel_theme.lower()} trip. "
-            f"Preferences: {activity_preferences}. Budget: {budget}. Class: {flight_class}. Rating: {hotel_rating}. "
-            f"Research: {research_results.content}. Flights: {json.dumps(cheapest_flights)}. "
-            f"Hotels: {json.dumps(top_hotels)}. Restaurants: {hotel_restaurant_results.content}."
-        )
-        itinerary = planner.run(planning_prompt, stream=False)
-
-    st.subheader("Cheapest Flight Options")
-    if cheapest_flights:
-        cols = st.columns(len(cheapest_flights))
-        for idx, flight in enumerate(cheapest_flights):
-            with cols[idx]:
-                airline_logo = flight.get("airline_logo", "")
-                airline_name = flight.get("airline", "Unknown Airline")
-                price = flight.get("price", "Not Available")
-                total_duration_minutes = flight.get("total_duration", "N/A")
-
-                flights_details = flight.get("flights", [{}])
-                departure_airport_info = flights_details[0].get("departure_airport", {})
-                arrival_airport_info = flights_details[-1].get("arrival_airport", {})
-
-                departure_time = format_datetime(departure_airport_info.get("time", "N/A"))
-                arrival_time = format_datetime(arrival_airport_info.get("time", "N/A"))
-                
-                booking_link = flight.get("link", f"https://www.google.com/flights?q={source}+{destination}")
-
-                st.markdown(
-                    f"""
-                    <div class="flight-card">
-                        <img src="{airline_logo}" alt="Airline Logo" />
-                        <h3>{airline_name}</h3>
-                        <p><strong>Departure:</strong> {departure_time}</p>
-                        <p><strong>Arrival:</strong> {arrival_time}</p>
-                        <p><strong>Duration:</strong> {total_duration_minutes} min</p>
-                        <div class="price">₹ {price}</div>
-                        <a href="{booking_link}" target="_blank" class="book-now-link">Book Now</a>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-    else:
-        st.warning("No flight data available.")
-
-    # Enhanced Hotel Display Results - Using Native Streamlit Components
-    st.subheader("Top Hotel Recommendations")
-    if top_hotels:
-        # Create columns based on number of hotels (max 3 for better layout)
-        num_hotels = min(len(top_hotels), 3)
-        cols = st.columns(num_hotels)
+            search_location = destination
         
-        for idx, hotel in enumerate(top_hotels[:3]):
-            with cols[idx]:
-                # Extract hotel data with fallbacks
-                hotel_name = hotel.get("name", "Unknown Hotel")
-                hotel_images = hotel.get("images", [])
-                hotel_image = hotel_images[0].get("thumbnail", "") if hotel_images else ""
-                
-                # Rating and reviews
-                rating = hotel.get("overall_rating", "N/A")
-                reviews_count = hotel.get("reviews", 0)
-                
-                # Price handling
-                price_numeric = hotel.get("price_numeric", 0)
-                rate_per_night = hotel.get("rate_per_night", {})
-                extracted_price = rate_per_night.get("extracted_lowest") or rate_per_night.get("lowest", "N/A")
-                
-                # Display hotel using native Streamlit components
-                # Neutral banner or hotel emoji as a header
-                st.markdown("🏨", unsafe_allow_html=True)
+        try:
+            params = {
+                "engine": "google_hotels",
+                "q": search_location,  # Use clean city name
+                "check_in_date": str(check_in_date),
+                "check_out_date": str(check_out_date),
+                "adults": guests,
+                "rooms": rooms,
+                "currency": "INR",
+                "hl": "en",
+                "gl": "in",  # Geographic location India
+                "api_key": SERPAPI_KEY
+            }
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            
+            # Filter out vacation rentals and keep only hotels
+            properties = results.get("properties", [])
+            hotel_properties = []
+            
+            for prop in properties:
+                prop_type = prop.get("type", "").lower()
+                if prop_type not in ["vacation rental", "apartment", "house", "condo", "villa"]:
+                    hotel_properties.append(prop)
+            
+            # Update results with filtered properties
+            results["properties"] = hotel_properties
+            
+            st.success(f"Found {len(hotel_properties)} hotels in {search_location}")
+            return results
+            
+        except Exception as e:
+            st.error(f"Error fetching hotels: {str(e)}")
+            return {"properties": []}
 
-                
-                st.markdown(f"**{hotel_name}**")
-                
-                # Rating
-                if rating != "N/A":
-                    st.write(f"⭐ **{rating}/5** ({reviews_count} reviews)")
-                
-                # Price
-                if price_numeric > 0:
-                    st.write(f"**₹{price_numeric:,.0f}** per night")
-                elif extracted_price != "N/A":
-                    st.write(f"**₹{extracted_price}** per night")
-                else:
-                    st.write("**Contact Hotel** for price")
-                
-                # Hotel type
-                hotel_type = hotel.get("type", "Hotel")
-                st.write(f"*{hotel_type}*")
-                
-                # Amenities
-                amenities = hotel.get("amenities", [])
-                if amenities:
-                    st.write(f"🏨 {', '.join(amenities[:3])}")
-                
-                # Booking link
-                hotel_link = hotel.get("link", "")
-                if not hotel_link:
-                    hotel_search_query = hotel_name.replace(" ", "+")
-                    destination_query = destination.replace(" ", "+")
-                    hotel_link = f"https://www.google.com/travel/hotels?q={hotel_search_query}+{destination_query}"
-                
-                st.link_button("🏨 Book Hotel", hotel_link)
-                
-                # More details in expander
-                with st.expander(f"More details"):
-                    if hotel.get("neighborhood"):
-                        st.write(f"**Location:** {hotel.get('neighborhood')}")
+    def extract_cheapest_flights(flight_data):
+        best_flights = flight_data.get("best_flights", [])
+        return sorted(best_flights, key=lambda x: x.get("price", float("inf")))[:3]
+
+    def extract_top_hotels(hotel_data):
+        try:
+            properties = hotel_data.get("properties", [])
+            if not properties:
+                return []
+            
+            # Filter hotels with valid data and sort by rating (descending) and price (ascending)
+            valid_hotels = []
+            for hotel in properties:
+                if hotel.get("name") and hotel.get("rate_per_night"):
+                    # Extract numeric price from rate_per_night
+                    rate_str = hotel.get("rate_per_night", {}).get("lowest", "0")
+                    try:
+                        # Handle different price formats
+                        if isinstance(rate_str, (int, float)):
+                            rate_numeric = float(rate_str)
+                        else:
+                            # Remove currency symbols, commas, and extract number
+                            rate_clean = ''.join(filter(lambda x: x.isdigit() or x == '.', str(rate_str)))
+                            rate_numeric = float(rate_clean) if rate_clean else 0
+                        
+                        hotel["price_numeric"] = rate_numeric
+                        valid_hotels.append(hotel)
+                    except (ValueError, TypeError):
+                        continue
+            
+            # Sort by overall_rating (desc) then by price (asc), get top 3
+            sorted_hotels = sorted(valid_hotels, 
+                                  key=lambda x: (-float(x.get("overall_rating", 0)), x.get("price_numeric", float("inf"))))[:3]
+            return sorted_hotels
+        except Exception as e:
+            st.error(f"Error extracting hotels: {str(e)}")
+            return []
+
+    def get_destination_country(iata_code):
+        iata_to_country = {
+            'DEL': 'India', 'BOM': 'India', 'BLR': 'India', 'MAA': 'India',
+            'BKK': 'Thailand', 'SIN': 'Singapore', 'KUL': 'Malaysia',
+            'DXB': 'UAE', 'DOH': 'Qatar', 'KTM': 'Nepal', 'CMB': 'Sri Lanka',
+            'NRT': 'Japan', 'ICN': 'South Korea', 'TPE': 'Taiwan',
+            'LHR': 'United Kingdom', 'CDG': 'France', 'FRA': 'Germany',
+            'FCO': 'Italy', 'MAD': 'Spain', 'AMS': 'Netherlands',
+            'ZUR': 'Switzerland', 'VIE': 'Austria', 'ARN': 'Sweden',
+            'CPH': 'Denmark', 'OSL': 'Norway', 'HEL': 'Finland',
+            'JFK': 'United States', 'LAX': 'United States', 'YYZ': 'Canada',
+            'SYD': 'Australia', 'MEL': 'Australia', 'AKL': 'New Zealand'
+        }
+        return iata_to_country.get(iata_code.upper(), 'Unknown')
+
+    # Initialize agents with error handling
+    try:
+        researcher = Agent(
+            name="Researcher",
+            instructions=[
+                "Identify destination, research climate, safety, top attractions, and activities.",
+                "Use reliable sources and summarize results clearly."
+            ],
+            model=Gemini(id="gemini-2.0-flash-exp"),
+            tools=[SerpApiTools(api_key=SERPAPI_KEY)],
+            add_datetime_to_instructions=True,
+        )
+
+        planner = Agent(
+            name="Planner",
+            instructions=[
+                "Create a detailed itinerary with travel preferences, time estimates, and budget alignment."
+            ],
+            model=Gemini(id="gemini-2.0-flash-exp"),
+            add_datetime_to_instructions=True,
+        )
+
+        hotel_restaurant_finder = Agent(
+            name="Hotel & Restaurant Finder",
+            instructions=[
+                "Find top-rated hotels and restaurants near main attractions. Include booking links if possible."
+            ],
+            model=Gemini(id="gemini-2.0-flash-exp"),
+            tools=[SerpApiTools(api_key=SERPAPI_KEY)],
+            add_datetime_to_instructions=True,
+        )
+    except Exception as e:
+        st.error(f"Error initializing AI agents: {str(e)}")
+        st.info("AI agents not available. Basic functionality will still work.")
+        researcher = planner = hotel_restaurant_finder = None
+
+    if st.button("Generate Travel Plan"):
+        visa_status = "Unknown"
+        destination_country = get_destination_country(destination)
+
+        if st.session_state.passport_country and st.session_state.visa_free_countries:
+            if destination_country in st.session_state.visa_free_countries:
+                visa_status = "Visa-Free"
+            elif destination_country != 'Unknown':
+                visa_status = "Visa Required"
+            else:
+                visa_status = "Check visa requirements"
+
+        if visa_status == "Visa-Free":
+            st.success(f"Great news! {visa_status} travel to {destination_country}")
+        elif visa_status == "Visa Required":
+            st.warning(f"{visa_status} for {destination_country} - Please check visa requirements")
+        else:
+            st.info(f"{visa_status} for {destination_country}")
+
+        with st.spinner("Fetching best flight options..."):
+            flight_data = fetch_flights(source, destination, departure_date, return_date)
+            cheapest_flights = extract_cheapest_flights(flight_data)
+
+        with st.spinner("Searching for best hotels..."):
+            hotel_data = fetch_hotels(destination, departure_date, return_date, num_guests, num_rooms)
+            top_hotels = extract_top_hotels(hotel_data)
+
+        # AI agent sections with error handling
+        research_results = None
+        hotel_restaurant_results = None
+        itinerary = None
+
+        if researcher:
+            with st.spinner("Researching best attractions & activities..."):
+                try:
+                    research_prompt = (
+                        f"Research top attractions in {destination} for a {num_days}-day {travel_theme.lower()} trip. "
+                        f"Interests: {activity_preferences}. Budget: {budget}. Class: {flight_class}. Rating: {hotel_rating}."
+                    )
+                    research_results = researcher.run(research_prompt, stream=False)
+                except Exception as e:
+                    st.warning(f"AI research unavailable: {str(e)}")
+
+        if hotel_restaurant_finder:
+            with st.spinner("Searching for hotels & restaurants..."):
+                try:
+                    hotel_restaurant_prompt = (
+                        f"Recommend hotels and restaurants in {destination} for a {travel_theme.lower()} trip. "
+                        f"Preferences: {activity_preferences}. Budget: {budget}. Hotel Rating: {hotel_rating}."
+                    )
+                    hotel_restaurant_results = hotel_restaurant_finder.run(hotel_restaurant_prompt, stream=False)
+                except Exception as e:
+                    st.warning(f"AI restaurant search unavailable: {str(e)}")
+
+        if planner:
+            with st.spinner("Creating itinerary..."):
+                try:
+                    planning_prompt = (
+                        f"Create a {num_days}-day travel itinerary to {destination} for a {travel_theme.lower()} trip. "
+                        f"Preferences: {activity_preferences}. Budget: {budget}. Class: {flight_class}. Rating: {hotel_rating}. "
+                        f"Research: {research_results.content if research_results else 'N/A'}. Flights: {json.dumps(cheapest_flights)}. "
+                        f"Hotels: {json.dumps(top_hotels)}. Restaurants: {hotel_restaurant_results.content if hotel_restaurant_results else 'N/A'}."
+                    )
+                    itinerary = planner.run(planning_prompt, stream=False)
+                except Exception as e:
+                    st.warning(f"AI itinerary creation unavailable: {str(e)}")
+
+        st.subheader("Cheapest Flight Options")
+        if cheapest_flights:
+            cols = st.columns(len(cheapest_flights))
+            for idx, flight in enumerate(cheapest_flights):
+                with cols[idx]:
+                    airline_logo = flight.get("airline_logo", "")
+                    airline_name = flight.get("airline", "Unknown Airline")
+                    price = flight.get("price", "Not Available")
+                    total_duration_minutes = flight.get("total_duration", "N/A")
+
+                    flights_details = flight.get("flights", [{}])
+                    departure_airport_info = flights_details[0].get("departure_airport", {})
+                    arrival_airport_info = flights_details[-1].get("arrival_airport", {})
+
+                    departure_time = format_datetime(departure_airport_info.get("time", "N/A"))
+                    arrival_time = format_datetime(arrival_airport_info.get("time", "N/A"))
                     
-                    if len(amenities) > 3:
-                        st.write(f"**All Amenities:** {', '.join(amenities)}")
+                    booking_link = flight.get("link", f"https://www.google.com/flights?q={source}+{destination}")
+
+                    st.markdown(
+                        f"""
+                        <div class="flight-card">
+                            <img src="{airline_logo}" alt="Airline Logo" />
+                            <h3>{airline_name}</h3>
+                            <p><strong>Departure:</strong> {departure_time}</p>
+                            <p><strong>Arrival:</strong> {arrival_time}</p>
+                            <p><strong>Duration:</strong> {total_duration_minutes} min</p>
+                            <div class="price">₹ {price}</div>
+                            <a href="{booking_link}" target="_blank" class="book-now-link">Book Now</a>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+        else:
+            st.warning("No flight data available.")
+
+        # Enhanced Hotel Display Results - Using Native Streamlit Components
+        st.subheader("Top Hotel Recommendations")
+        if top_hotels:
+            # Create columns based on number of hotels (max 3 for better layout)
+            num_hotels = min(len(top_hotels), 3)
+            cols = st.columns(num_hotels)
+            
+            for idx, hotel in enumerate(top_hotels[:3]):
+                with cols[idx]:
+                    # Extract hotel data with fallbacks
+                    hotel_name = hotel.get("name", "Unknown Hotel")
+                    hotel_images = hotel.get("images", [])
+                    hotel_image = hotel_images[0].get("thumbnail", "") if hotel_images else ""
                     
-                    if hotel.get("description"):
-                        st.write(f"**Description:** {hotel.get('description')}")
-                
-                st.divider()
+                    # Rating and reviews
+                    rating = hotel.get("overall_rating", "N/A")
+                    reviews_count = hotel.get("reviews", 0)
+                    
+                    # Price handling
+                    price_numeric = hotel.get("price_numeric", 0)
+                    rate_per_night = hotel.get("rate_per_night", {})
+                    extracted_price = rate_per_night.get("extracted_lowest") or rate_per_night.get("lowest", "N/A")
+                    
+                    # Display hotel using native Streamlit components
+                    # Neutral banner or hotel emoji as a header
+                    st.markdown("🏨", unsafe_allow_html=True)
 
-    else:
-        st.warning("No hotel data available. Please try adjusting your search criteria.")
-        
-        with st.expander("Troubleshooting Tips"):
-            st.write("""
-            - Make sure your destination is spelled correctly
-            - Try using a city name instead of airport code
-            - Check if your dates are valid
-            - Verify your API key is working
-            """)
+                    
+                    st.markdown(f"**{hotel_name}**")
+                    
+                    # Rating
+                    if rating != "N/A":
+                        st.write(f"⭐ **{rating}/5** ({reviews_count} reviews)")
+                    
+                    # Price
+                    if price_numeric > 0:
+                        st.write(f"**₹{price_numeric:,.0f}** per night")
+                    elif extracted_price != "N/A":
+                        st.write(f"**₹{extracted_price}** per night")
+                    else:
+                        st.write("**Contact Hotel** for price")
+                    
+                    # Hotel type
+                    hotel_type = hotel.get("type", "Hotel")
+                    st.write(f"*{hotel_type}*")
+                    
+                    # Amenities
+                    amenities = hotel.get("amenities", [])
+                    if amenities:
+                        st.write(f"🏨 {', '.join(amenities[:3])}")
+                    
+                    # Booking link
+                    hotel_link = hotel.get("link", "")
+                    if not hotel_link:
+                        hotel_search_query = hotel_name.replace(" ", "+")
+                        destination_query = destination.replace(" ", "+")
+                        hotel_link = f"https://www.google.com/travel/hotels?q={hotel_search_query}+{destination_query}"
+                    
+                    st.link_button("🏨 Book Hotel", hotel_link)
+                    
+                    # More details in expander
+                    with st.expander(f"More details"):
+                        if hotel.get("neighborhood"):
+                            st.write(f"**Location:** {hotel.get('neighborhood')}")
+                        
+                        if len(amenities) > 3:
+                            st.write(f"**All Amenities:** {', '.join(amenities)}")
+                        
+                        if hotel.get("description"):
+                            st.write(f"**Description:** {hotel.get('description')}")
+                    
+                    st.divider()
 
-    st.subheader("Restaurants & Local Experiences")
-    st.write(hotel_restaurant_results.content)
+        else:
+            st.warning("No hotel data available. Please try adjusting your search criteria.")
+            
+            with st.expander("Troubleshooting Tips"):
+                st.write("""
+                - Make sure your destination is spelled correctly
+                - Try using a city name instead of airport code
+                - Check if your dates are valid
+                - Verify your API key is working
+                """)
 
-    st.subheader("Your Personalized Itinerary")
-    st.write(itinerary.content)
+        st.subheader("Restaurants & Local Experiences")
+        if hotel_restaurant_results:
+            st.write(hotel_restaurant_results.content)
+        else:
+            st.info("AI restaurant recommendations not available. Please search manually for local dining options.")
 
-    st.success("Travel plan generated successfully!")
+        st.subheader("Your Personalized Itinerary")
+        if itinerary:
+            st.write(itinerary.content)
+        else:
+            st.info(f"Basic itinerary suggestion: Enjoy your {num_days}-day {travel_theme.lower()} in {destination}! Consider visiting local attractions, trying regional cuisine, and experiencing the culture.")
+
+        st.success("Travel plan generated successfully!")
 
 
 
