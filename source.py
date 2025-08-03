@@ -835,8 +835,11 @@ elif st.session_state.current_page == "IVR Call":
                     result = response.json()
                     if result.get("success"):
                         st.success(f"Call initiated successfully! SID: {result['sid']}")
+                    
                     else:
-                        st.error("Call initiation failed.")
+                        st.error(f"❌ Call initiation failed. Reason: {result.get('message') or result}")
+                
+                
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
