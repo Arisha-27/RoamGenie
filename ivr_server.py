@@ -12,7 +12,7 @@ ivr_app = FastAPI()
 BASE_URL = "https://1fd0a36a56f7.ngrok-free.app"  # Replace with your current ngrok URL
 
 # Twilio setup
-TWILIO_ACCOUNT_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+TWILIO_ACCOUNT_SID = st.secrets["TWILIO_SID"]
 TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_NUMBER = "+14439988287"
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
