@@ -1,10 +1,11 @@
+import streamlit as st
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 from twilio.rest import Client
 import uvicorn
 import logging
-import streamlit as st
+
 
 ivr_app = FastAPI()
 
