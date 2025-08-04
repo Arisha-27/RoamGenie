@@ -5,15 +5,18 @@ from pydantic import BaseModel
 from twilio.rest import Client
 import uvicorn
 import logging
-import os
+import toml
+
 
 ivr_app = FastAPI()
 
-BASE_URL = "https://a56f93f75a49.ngrok-free.app"  # Replace with your current ngrok URL
+BASE_URL = "https://2088f271113f.ngrok-free.app"  # Replace with your current ngrok URL
+
+secrets = toml.load(".streamlit/secrets.toml")
 
 # Twilio setup
-TWILIO_ACCOUNT_SID = os.environ["TWILIO_SID"]
-TWILIO_AUTH_TOKEN = os.environ["TWILIO_AUTH_TOKEN"]
+TWILIO_ACCOUNT_SID = secrets["TWILIO_SID"]
+TWILIO_AUTH_TOKEN = secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_NUMBER = "+14439988287"
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
