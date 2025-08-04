@@ -26,7 +26,7 @@ try:
     twilio_number = st.secrets["TWILIO_PHONE_NUMBER"]
     client = Client(twilio_sid, twilio_token)
 except KeyError:
-    st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
+    #st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
     twilio_token = "387373d055a92651efe50091755bb82f"
