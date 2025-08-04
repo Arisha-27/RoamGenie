@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from twilio.rest import Client
 import uvicorn
 import logging
-import toml
 import os
 
 ivr_app = FastAPI()
