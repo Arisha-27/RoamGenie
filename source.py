@@ -798,7 +798,7 @@ elif st.session_state.current_page == "Passport":
 elif st.session_state.current_page == "IVR Call":
     st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://1fd0a36a56f7.ngrok-free.app/start-call"
+    FASTAPI_IVR_URL = "https://a56f93f75a49.ngrok-free.app/start-call"
 
     user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
 
