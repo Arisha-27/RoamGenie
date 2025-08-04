@@ -26,7 +26,7 @@ try:
     twilio_number = st.secrets["TWILIO_PHONE_NUMBER"]
     client = Client(twilio_sid, twilio_token)
 except KeyError:
-    #st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
+   # st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
     # Fallback dummy values to prevent app crash if secrets are not configured for local dev
     twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
     twilio_token = "387373d055a92651efe50091755bb82f"
@@ -862,6 +862,7 @@ elif st.session_state.current_page == "Contact Us":
             "phone": phone
         }
         try:
+            
             res = requests.post(
                 "https://automations.businessapp.io/start/6505/7be774d5-d223-48bc-b245-c8b38a17518f",
                 json=payload
@@ -886,7 +887,9 @@ client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
 st.markdown("## 🛡️ Emergency & Offline Support")
 
+st.write("SEND (join edge-general) on +14155238886 to join our Whatsapp group fallback simulation.")
 user_whatsapp = st.text_input("📱 Enter your WhatsApp number (with +91)", "+91")
+
 
 col1, col2 = st.columns(2)
 
