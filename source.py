@@ -834,13 +834,21 @@ elif st.session_state.current_page == "IVR Call":
             with st.spinner("Calling..."):
                 try:
                     response = requests.post(FASTAPI_IVR_URL, json={"to_number": user_phone})
-                    result = response.json()
-                    if result.get("success"):
-                        st.success(f"Call initiated successfully! SID: {result['sid']}")
+                    
+                    if response.status_code != 200:
+                        st.error(f"Server error {response.status_code}: {response.text}")
                     else:
-                        st.error("Call initiation failed.")
+                        try:
+                            result = response.json()
+                            if result.get("success"):
+                                st.success(f"Call initiated successfully! SID: {result['sid']}")
+                            else:
+                                st.error("Call initiation failed.")
+                        except Exception as json_err:
+                            st.error(f"Invalid JSON received: {response.text}")
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Request failed: {e}")
+
         else:
             st.warning("Please enter a valid Indian phone number starting with +91.")
 
