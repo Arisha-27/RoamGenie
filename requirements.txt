@@ -9,7 +9,8 @@ pytesseract
 fastapi
 uvicorn
 twilio
+serpapi>=0.1.4
 agno>=0.1.8
 google-genai
 google-search-resul
-google-search-results>=2.0.1
+
