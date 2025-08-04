@@ -8,7 +8,7 @@ from PIL import Image
 import io
 import cv2
 import numpy as np
-from google_search_results import GoogleSearch
+from serpapi import GoogleSearch
 from agno.agent import Agent
 from agno.tools.serpapi import SerpApiTools
 from agno.models.google import Gemini
