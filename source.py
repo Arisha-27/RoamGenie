@@ -823,7 +823,7 @@ elif st.session_state.current_page == "Passport":
 elif st.session_state.current_page == "IVR Call":
     st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://ebd7604a726d.ngrok-free.app/start-call"
+    FASTAPI_IVR_URL = "https://1fd0a36a56f7.ngrok-free.app/start-call"
 
     user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
 
@@ -874,8 +874,8 @@ elif st.session_state.current_page == "Contact Us":
         else:
             st.warning("Please complete all fields.")
 # Twilio credentials
-TWILIO_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "387373d055a92651efe50091755bb82f"
+TWILIO_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
 client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
