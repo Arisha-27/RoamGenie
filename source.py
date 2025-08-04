@@ -19,9 +19,36 @@ import re
 
 st.set_page_config(page_title="RoamGenie - AI Travel Planner", layout="wide")
 
-# Now start the FastAPI IVR server
-import subprocess
-subprocess.Popen(["python", "ivr_server.py"])
+# Twilio SMS Notification setup
+try:
+    twilio_sid = st.secrets["TWILIO_ACCOUNT_SID"]
+    twilio_token = st.secrets["TWILIO_AUTH_TOKEN"]
+    twilio_number = st.secrets["TWILIO_PHONE_NUMBER"]
+    client = Client(twilio_sid, twilio_token)
+except KeyError:
+    st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
+    # Fallback dummy values to prevent app crash if secrets are not configured for local dev
+    twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
+    twilio_token = "387373d055a92651efe50091755bb82f"
+    twilio_number = "+14439988287"
+    client = None
+
+def make_voice_call(to_number, message):
+    if client:
+        try:
+            call = client.calls.create(
+                to=to_number,
+                from_=twilio_number,
+                twiml=f"<Response><Say>{message}</Say></Response>"
+            )
+            return call.sid
+        except Exception as e:
+            st.error(f"Error making call: {e}")
+            return None
+    else:
+        st.error("Twilio client not initialized. Please configure Twilio secrets.")
+        return None
+
 
 st.markdown("""
     <style>
@@ -798,7 +825,7 @@ elif st.session_state.current_page == "Passport":
 elif st.session_state.current_page == "IVR Call":
     st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://a56f93f75a49.ngrok-free.app"
+    FASTAPI_IVR_URL = "https://2088f271113f.ngrok-free.app/start-call"
 
     user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
 
@@ -806,10 +833,7 @@ elif st.session_state.current_page == "IVR Call":
         if user_phone.startswith("+91") and len(user_phone) == 13:
             with st.spinner("Calling..."):
                 try:
-                    response = requests.post(
-                        f"{FASTAPI_IVR_URL}/start-call",
-                        json={"to_number": user_phone}
-                    )
+                    response = requests.post(FASTAPI_IVR_URL, json={"to_number": user_phone})
                     result = response.json()
                     if result.get("success"):
                         st.success(f"Call initiated successfully! SID: {result['sid']}")
@@ -819,7 +843,6 @@ elif st.session_state.current_page == "IVR Call":
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter a valid Indian phone number starting with +91.")
-
 
 elif st.session_state.current_page == "Contact Us":
     st.header("Save Your Plan / Contact Us")
@@ -853,11 +876,10 @@ elif st.session_state.current_page == "Contact Us":
         else:
             st.warning("Please complete all fields.")
 # Twilio credentials
-os.environ["TWILIO_SID"] = st.secrets["TWILIO_SID"]
-os.environ["TWILIO_AUTH_TOKEN"] = st.secrets["TWILIO_AUTH_TOKEN"]
+TWILIO_SID = st.secrets["TWILIO_SID"]
+TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
-client = Client(st.secrets["TWILIO_SID"], st.secrets["TWILIO_AUTH_TOKEN"])
-
+client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
 
 st.markdown("## 🛡️ Emergency & Offline Support")
 
