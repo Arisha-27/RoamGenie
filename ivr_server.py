@@ -3,14 +3,16 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from twilio.rest import Client
 import uvicorn
+import logging
+import streamlit as st
 
 ivr_app = FastAPI()
 
-BASE_URL = "https://35ba70828e62.ngrok-free.app"  # Replace with your current ngrok URL
+BASE_URL = "https://1fd0a36a56f7.ngrok-free.app"  # Replace with your current ngrok URL
 
 # Twilio setup
-TWILIO_ACCOUNT_SID = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-TWILIO_AUTH_TOKEN = "387373d055a92651efe50091755bb82f"
+TWILIO_ACCOUNT_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_NUMBER = "+14439988287"
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
@@ -22,13 +24,15 @@ class CallRequest(BaseModel):
 def start_call(req: CallRequest):
     try:
         call = client.calls.create(
-            url=f"{BASE_URL}/ivr-language",  # Entry point to your IVR flow
+            url=f"{BASE_URL}/ivr-language",
             to=req.to_number,
             from_=TWILIO_NUMBER
         )
         return {"success": True, "sid": call.sid}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.exception("Twilio call initiation failed")
+        raise HTTPException(status_code=500, detail=f"Call error: {str(e)}")
+
 
 # STEP 1: Language selection
 @ivr_app.post("/ivr-language")
