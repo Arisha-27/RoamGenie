@@ -9,7 +9,7 @@ import os
 
 ivr_app = FastAPI()
 
-BASE_URL = "https://1fd0a36a56f7.ngrok-free.app"  # Replace with your current ngrok URL
+BASE_URL = "https://a56f93f75a49.ngrok-free.app"  # Replace with your current ngrok URL
 
 # Twilio setup
 TWILIO_ACCOUNT_SID = os.environ["TWILIO_SID"]
