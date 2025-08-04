@@ -798,7 +798,7 @@ elif st.session_state.current_page == "Passport":
 elif st.session_state.current_page == "IVR Call":
     st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://a56f93f75a49.ngrok-free.app/start-call"
+    FASTAPI_IVR_URL = "https://a56f93f75a49.ngrok-free.app"
 
     user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
 
@@ -806,7 +806,10 @@ elif st.session_state.current_page == "IVR Call":
         if user_phone.startswith("+91") and len(user_phone) == 13:
             with st.spinner("Calling..."):
                 try:
-                    response = requests.post(FASTAPI_IVR_URL, json={"to_number": user_phone})
+                    response = requests.post(
+                        f"{FASTAPI_IVR_URL}/start-call",
+                        json={"to_number": user_phone}
+                    )
                     result = response.json()
                     if result.get("success"):
                         st.success(f"Call initiated successfully! SID: {result['sid']}")
@@ -816,6 +819,7 @@ elif st.session_state.current_page == "IVR Call":
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter a valid Indian phone number starting with +91.")
+
 
 elif st.session_state.current_page == "Contact Us":
     st.header("Save Your Plan / Contact Us")
