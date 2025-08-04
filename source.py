@@ -874,7 +874,7 @@ elif st.session_state.current_page == "Contact Us":
         else:
             st.warning("Please complete all fields.")
 # Twilio credentials
-TWILIO_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+TWILIO_SID = st.secrets["TWILIO_SID"]
 TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
 client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
