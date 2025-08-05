@@ -823,25 +823,29 @@ elif st.session_state.current_page == "Passport":
             st.metric("Oceania", oceania_count)
 
 elif st.session_state.current_page == "IVR Call":
-    st.subheader("Initiate Travel IVR Call")
 
-    FASTAPI_IVR_URL = "https://2088f271113f.ngrok-free.app/start-call"
+    # Replace this with your actual n8n webhook URL
+    N8N_WEBHOOK_URL = "https://mhsiddiqui.app.n8n.cloud/webhook/initiate-call"
 
-    user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXXX")
+    user_phone = st.text_input("Enter your phone number (with country code)", "XXXXXXXXXX")
 
     if st.button("Start Call"):
         if user_phone.startswith("+91") and len(user_phone) == 13:
             with st.spinner("Calling..."):
                 try:
-                    response = requests.post(FASTAPI_IVR_URL, json={"to_number": user_phone})
-                    result = response.json()
-                    st.write(result)
-                    
-                
-                    if result.get("success"):
-                        st.success(f"Call initiated successfully! SID: {result['sid']}")
+                    payload = {
+                        "to_number": user_phone
+                    }
+
+                    response = requests.post(N8N_WEBHOOK_URL, json=payload)
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get("success"):
+                            st.success(f"Call initiated successfully! SID: {result['sid']}")
+                        else:
+                            st.warning("Call request sent, but no SID returned.")
                     else:
-                        st.error("Call initiation failed.")
+                        st.error(f"Call initiation failed. Status: {response.status_code}, Details: {response.text}")
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
