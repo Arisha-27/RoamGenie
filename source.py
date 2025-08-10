@@ -16,8 +16,725 @@ from twilio.rest import Client
 from datetime import datetime
 import pytesseract
 import re
+import sqlite3
+import json
+import db_utils            # <-- new
+# Save the provided code as 'roamgenie_db.py' and then use these imports:
 
-st.set_page_config(page_title="RoamGenie - AI Travel Planner", layout="wide")
+# Basic imports for core functionality
+from db_utils import (
+    # Database initialization
+    init_db,
+    initialize_admin_system,
+    
+    # Flight search logging and retrieval
+    log_flight_search,
+    log_enhanced_flight_search,
+    fetch_recent_searches,
+    fetch_all_searches,
+    
+    # Contact management
+    log_enhanced_contact,
+    fetch_contacts,
+    
+    # Analytics functions
+    get_total_searches_count,
+    get_recent_searches_count,
+    get_monthly_searches,
+    get_average_trip_duration,
+    get_weekly_growth_rate,
+    
+    # Top destinations and origins
+    get_top_destinations,
+    get_top_departures,
+    
+    # Distribution analytics
+    get_budget_distribution,
+    get_class_distribution,
+    
+    # Time-based analytics
+    get_searches_over_time,
+    get_flight_analytics,
+    
+    # Admin functions
+    get_admin_summary_stats,
+    generate_analytics_summary,
+    
+    # Event logging
+    log_event,
+    
+    # Utility functions
+    backup_database,
+    get_database_info,
+    get_flight_analytic
+)
+
+import hashlib
+import plotly.express as px
+import plotly.graph_objects as go
+import uuid
+
+# Initialize session_id if not already present
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())  # Generates a unique session ID
+
+
+
+
+# Admin credentials - you can move this to secrets
+try:
+    ADMIN_CREDENTIALS = {
+        st.secrets["admin"]["admin_username"]: st.secrets["admin"]["admin_password"],
+        st.secrets["admin"]["manager_username"]: st.secrets["admin"]["manager_password"]
+    }
+except:
+    # Fallback credentials
+    ADMIN_CREDENTIALS = {
+        "admin": "admin123",
+        "manager": "manager456"
+    }
+
+def check_admin_credentials(username, password):
+    """Check if admin credentials are correct"""
+    return username in ADMIN_CREDENTIALS and ADMIN_CREDENTIALS[username] == password
+
+def admin_login():
+    """Admin login interface"""
+    st.markdown("### 🔐 Admin Authentication")
+    
+    if 'admin_logged_in' not in st.session_state:
+        st.session_state.admin_logged_in = False
+    
+    if not st.session_state.admin_logged_in:
+        with st.form("admin_login"):
+            username_col, password_col = st.columns(2)
+            with username_col:
+                username = st.text_input("Username")
+            with password_col:
+                password = st.text_input("Password", type="password")
+            
+            login_btn = st.form_submit_button("🔓 Login", use_container_width=True)
+            
+            if login_btn:
+                if check_admin_credentials(username, password):
+                    st.session_state.admin_logged_in = True
+                    st.session_state.admin_username = username
+                    st.success("✅ Login successful!")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid credentials!")
+        
+        # Show demo credentials for testing
+        st.info("**Demo Credentials:**\n- Username: `admin` Password: `admin123`\n- Username: `manager` Password: `manager456`")
+        return False
+    else:
+        header_col, logout_col = st.columns([6, 1])
+        with header_col:
+            st.success(f"✅ Logged in as: **{st.session_state.admin_username}**")
+        with logout_col:
+            if st.button("🚪 Logout", key="admin_logout_btn"):
+                st.session_state.admin_logged_in = False
+                st.rerun()
+        return True
+
+def display_overview_metrics():
+    """Display comprehensive overview metrics"""
+    st.markdown("## 📊 Key Performance Indicators")
+    
+    # Get comprehensive stats
+    try:
+        stats = get_admin_summary_stats()
+        total_searches = get_total_searches_count()
+        contacts_df = fetch_contacts()
+        total_contacts = len(contacts_df) if contacts_df is not None and not contacts_df.empty else 0
+        recent_searches = get_recent_searches_count(7)
+        avg_duration = get_average_trip_duration()
+    except Exception as e:
+        st.error(f"Error fetching metrics: {e}")
+        stats = {}
+        total_searches = 0
+        total_contacts = 0
+        recent_searches = 0
+        avg_duration = 0
+    
+    # Main KPIs Row 1
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+    
+    with kpi1:
+        st.metric("Total Searches", stats.get('total_searches', total_searches))
+    with kpi2:
+        st.metric("Total Contacts", stats.get('total_contacts', total_contacts))
+    with kpi3:
+        st.metric("Last 7 Days", stats.get('searches_7d', recent_searches))
+    with kpi4:
+        st.metric("Last 24h Searches", stats.get('searches_24h', 0))
+    with kpi5:
+        st.metric("Avg Trip Duration", f"{stats.get('avg_trip_duration', avg_duration):.1f} days")
+    
+    st.markdown("---")
+    
+    # Additional Stats Row 2
+    stat1, stat2, stat3, stat4 = st.columns(4)
+    
+    with stat1:
+        try:
+            budget_stats = get_budget_distribution()
+            most_popular_budget = budget_stats[0][0] if budget_stats and len(budget_stats) > 0 else "N/A"
+        except:
+            most_popular_budget = "N/A"
+        st.metric("Popular Budget", most_popular_budget)
+    
+    with stat2:
+        try:
+            class_stats = get_class_distribution()
+            most_popular_class = class_stats[0][0] if class_stats and len(class_stats) > 0 else "N/A"
+        except:
+            most_popular_class = "N/A"
+        st.metric("Popular Class", most_popular_class)
+    
+    with stat3:
+        try:
+            monthly_searches = get_monthly_searches()
+        except:
+            monthly_searches = 0
+        st.metric("This Month", monthly_searches)
+    
+    with stat4:
+        try:
+            weekly_growth = get_weekly_growth_rate()
+        except:
+            weekly_growth = 0
+        st.metric("Weekly Growth", f"{weekly_growth:+.1f}%")
+
+def display_charts_section():
+    """Display comprehensive charts and analytics"""
+    st.markdown("## 📈 Analytics & Trends")
+    
+    flight_data = get_flight_analytics()
+    
+    if flight_data.empty:
+        st.info("No flight data available for charts.")
+        return
+    
+    # Top section - Destination and Departure charts
+    st.markdown("### 🌍 Geographic Analytics")
+    dest_col, dep_col = st.columns(2)
+    
+    with dest_col:
+        st.markdown("#### Top Destinations")
+        try:
+            df_top_destinations = get_top_destinations(10)
+            if df_top_destinations is not None and not df_top_destinations.empty:
+                fig_dest = px.bar(
+                    df_top_destinations, 
+                    x='count', 
+                    y='destination',
+                    orientation='h',
+                    title='Most Popular Destinations',
+                    color='count',
+                    color_continuous_scale='viridis'
+                )
+                fig_dest.update_layout(height=400, yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_dest, use_container_width=True)
+                
+                # Show data table
+                with st.expander("📊 View Destination Data"):
+                    st.dataframe(df_top_destinations, use_container_width=True)
+            else:
+                st.info("No destination data available yet.")
+        except Exception as e:
+            st.error(f"Error loading destination data: {e}")
+    
+    with dep_col:
+        st.markdown("#### Top Departure Cities")
+        try:
+            df_departures = get_top_departures(10)
+            if df_departures is not None and not df_departures.empty:
+                fig_dep = px.bar(
+                    df_departures, 
+                    x='count', 
+                    y='origin',
+                    orientation='h',
+                    title='Most Popular Departure Cities',
+                    color='count',
+                    color_continuous_scale='plasma'
+                )
+                fig_dep.update_layout(height=400, yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_dep, use_container_width=True)
+                
+                # Show data table
+                with st.expander("📊 View Departure Data"):
+                    st.dataframe(df_departures, use_container_width=True)
+            else:
+                st.info("No departure data available yet.")
+        except Exception as e:
+            st.error(f"Error loading departure data: {e}")
+    
+    st.markdown("---")
+    
+    # Time-based analytics
+    st.markdown("### ⏰ Temporal Analytics")
+    time_col1, time_col2 = st.columns(2)
+    
+    with time_col1:
+        # Search trends over time
+        st.markdown("#### Search Trends Over Time")
+        try:
+            df_time = get_searches_over_time()
+            if df_time is not None and not df_time.empty:
+                df_time['date'] = pd.to_datetime(df_time['date'])
+                fig_time = px.line(
+                    df_time, 
+                    x='date', 
+                    y='count',
+                    title='Daily Search Volume',
+                    markers=True
+                )
+                fig_time.update_layout(height=400)
+                st.plotly_chart(fig_time, use_container_width=True)
+            else:
+                st.info("No search trend data available yet.")
+        except Exception as e:
+            st.error(f"Error loading search trends: {e}")
+    
+    with time_col2:
+        # Budget distribution
+        st.markdown("#### Budget Distribution")
+        if 'budget_preference' in flight_data.columns:
+            budget_dist = flight_data['budget_preference'].value_counts()
+            fig_budget = px.pie(values=budget_dist.values, names=budget_dist.index, 
+                       title='Budget Preference Distribution')
+            fig_budget.update_layout(height=400)
+            st.plotly_chart(fig_budget, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Advanced analytics row
+    st.markdown("### 🔍 Advanced Analytics")
+    advanced_col1, advanced_col2, advanced_col3 = st.columns(3)
+    
+    with advanced_col1:
+        # Hourly search pattern
+        if 'hour_of_day' in flight_data.columns:
+            hourly_data = flight_data['hour_of_day'].value_counts().sort_index()
+            fig_hourly = px.bar(x=hourly_data.index, y=hourly_data.values,
+                       title='Search Activity by Hour of Day',
+                       labels={'x': 'Hour', 'y': 'Number of Searches'})
+            fig_hourly.update_layout(height=350)
+            st.plotly_chart(fig_hourly, use_container_width=True)
+    
+    with advanced_col2:
+        # Flight class distribution
+        if 'flight_class' in flight_data.columns:
+            class_dist = flight_data['flight_class'].value_counts()
+            fig_class = px.pie(values=class_dist.values, names=class_dist.index,
+                       title='Flight Class Distribution')
+            fig_class.update_layout(height=350)
+            st.plotly_chart(fig_class, use_container_width=True)
+    
+    with advanced_col3:
+        # Trip duration distribution
+        if 'duration_days' in flight_data.columns:
+            fig_duration = px.histogram(flight_data, x='duration_days',
+                             title='Trip Duration Distribution',
+                             labels={'duration_days': 'Days', 'count': 'Frequency'})
+            fig_duration.update_layout(height=350)
+            st.plotly_chart(fig_duration, use_container_width=True)
+
+def display_customer_management():
+    """Display comprehensive customer management"""
+    st.markdown("## 👥 Customer Management")
+    
+    # Get customer data
+    customers = fetch_contacts(1000)  # Get more for admin
+    
+    if customers is None or customers.empty:
+        st.info("No customer data available.")
+        return
+    
+    # Search and filter section
+    st.markdown("### 🔍 Search & Filter")
+    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    
+    with filter_col1:
+        search_term = st.text_input("🔍 Search customers", 
+                                   placeholder="Name, email, or phone")
+    with filter_col2:
+        show_count = st.selectbox("Show records", [25, 50, 100, 200, "All"])
+    with filter_col3:
+        sort_by = st.selectbox("Sort by", ["Registration Date", "Name", "Email"])
+    
+    # Filter customers
+    filtered_customers = customers.copy()
+    
+    if search_term:
+        mask = (
+            customers['firstName'].str.contains(search_term, case=False, na=False) |
+            customers['secondName'].str.contains(search_term, case=False, na=False) |
+            customers['email'].str.contains(search_term, case=False, na=False) |
+            customers['phone'].str.contains(search_term, case=False, na=False)
+        )
+        filtered_customers = customers[mask]
+    
+    # Sort customers
+    if sort_by == "Registration Date" and 'created_at' in filtered_customers.columns:
+        filtered_customers = filtered_customers.sort_values('created_at', ascending=False)
+    elif sort_by == "Name":
+        filtered_customers = filtered_customers.sort_values(['firstName', 'secondName'])
+    elif sort_by == "Email":
+        filtered_customers = filtered_customers.sort_values('email')
+    
+    # Limit results
+    if show_count != "All":
+        filtered_customers = filtered_customers.head(show_count)
+    
+    # Display results
+    st.markdown(f"### 📊 Customer Records ({len(filtered_customers)} shown)")
+    
+    if not filtered_customers.empty:
+        # Prepare display data
+        display_data = filtered_customers.copy()
+        
+        # Format registration date
+        if 'created_at' in display_data.columns:
+            display_data['Registration Date'] = pd.to_datetime(
+                display_data['created_at'], errors='coerce'
+            ).dt.strftime('%Y-%m-%d %H:%M')
+        
+        # Select and rename columns
+        display_columns = []
+        column_mapping = {
+            'firstName': 'First Name',
+            'secondName': 'Last Name',
+            'email': 'Email',
+            'phone': 'Phone'
+        }
+        
+        for old_col, new_col in column_mapping.items():
+            if old_col in display_data.columns:
+                display_data[new_col] = display_data[old_col]
+                display_columns.append(new_col)
+        
+        if 'Registration Date' in display_data.columns:
+            display_columns.append('Registration Date')
+        
+        # Show dataframe
+        st.dataframe(display_data[display_columns], use_container_width=True)
+        
+        # Recent activity sidebar
+        with st.expander("📋 Recent Customer Activity", expanded=False):
+            st.markdown("#### Recent CRM Contacts")
+            try:
+                crm_df = fetch_contacts(5)  # Limit to 5 recent contacts
+                if crm_df is not None and not crm_df.empty:
+                    for idx, row in crm_df.iterrows():
+                        first_name = row.get('firstName', row.get('first_name', ''))
+                        last_name = row.get('secondName', row.get('last_name', ''))
+                        name = f"{first_name} {last_name}".strip()
+                        email = row.get('email', 'N/A')
+                        phone = row.get('phone', 'N/A')
+                        created_at = row.get('created_at', '')
+                        
+                        if created_at:
+                            try:
+                                reg_date = pd.to_datetime(created_at).strftime('%Y-%m-%d')
+                            except:
+                                reg_date = 'N/A'
+                        else:
+                            reg_date = 'N/A'
+                        
+                        st.markdown(f"""
+                        **{name if name.strip() else 'N/A'}**  
+                        📧 {email} | 📞 {phone} | 📅 {reg_date}
+                        """)
+                        st.markdown("---")
+                else:
+                    st.info("No recent contacts available.")
+            except Exception as e:
+                st.error(f"Error loading contacts: {e}")
+
+def display_flight_management():
+    """Display comprehensive flight search management"""
+    st.markdown("## ✈️ Flight Search Management")
+    
+    # Get flight data
+    flight_data = get_flight_analytics()
+    
+    if flight_data.empty:
+        st.info("No flight search data available.")
+        return
+    
+    # Filters section
+    st.markdown("### 🔧 Filters")
+    filter1, filter2, filter3, filter4 = st.columns(4)
+    
+    with filter1:
+        origins = ['All'] + sorted(flight_data['origin'].unique().tolist())
+        selected_origin = st.selectbox("Origin", origins)
+    
+    with filter2:
+        destinations = ['All'] + sorted(flight_data['destination'].unique().tolist())
+        selected_destination = st.selectbox("Destination", destinations)
+    
+    with filter3:
+        budgets = ['All'] + sorted(flight_data['budget_preference'].dropna().unique().tolist())
+        selected_budget = st.selectbox("Budget", budgets)
+    
+    with filter4:
+        classes = ['All'] + sorted(flight_data['flight_class'].dropna().unique().tolist())
+        selected_class = st.selectbox("Class", classes)
+    
+    # Apply filters
+    filtered_data = flight_data.copy()
+    
+    if selected_origin != 'All':
+        filtered_data = filtered_data[filtered_data['origin'] == selected_origin]
+    if selected_destination != 'All':
+        filtered_data = filtered_data[filtered_data['destination'] == selected_destination]
+    if selected_budget != 'All':
+        filtered_data = filtered_data[filtered_data['budget_preference'] == selected_budget]
+    if selected_class != 'All':
+        filtered_data = filtered_data[filtered_data['flight_class'] == selected_class]
+    
+    # Display summary metrics for filtered data
+    st.markdown("### 📊 Filtered Data Summary")
+    summary1, summary2, summary3 = st.columns(3)
+    
+    with summary1:
+        st.metric("Filtered Records", len(filtered_data))
+    
+    with summary2:
+        avg_duration = filtered_data['duration_days'].mean()
+        st.metric("Avg Duration", f"{avg_duration:.1f} days" if not pd.isna(avg_duration) else "N/A")
+    
+    with summary3:
+        if 'estimated_price' in filtered_data.columns:
+            avg_price = filtered_data['estimated_price'].mean()
+            st.metric("Avg Price", f"₹{avg_price:,.0f}" if not pd.isna(avg_price) else "N/A")
+    
+    st.markdown("---")
+    
+    # Flight data table
+    st.markdown(f"### 📋 Flight Searches ({len(filtered_data)} records)")
+    
+    if not filtered_data.empty:
+        # Prepare display data
+        display_columns = [
+            'origin', 'destination', 'departure_date', 'return_date',
+            'duration_days', 'budget_preference', 'flight_class', 'created_at'
+        ]
+        
+        display_data = filtered_data[
+            [col for col in display_columns if col in filtered_data.columns]
+        ].copy()
+        
+        # Format dates
+        if 'created_at' in display_data.columns:
+            display_data['Search Time'] = pd.to_datetime(
+                display_data['created_at']
+            ).dt.strftime('%Y-%m-%d %H:%M')
+        
+        # Show dataframe
+        st.dataframe(display_data, use_container_width=True)
+        
+        # Recent searches sidebar
+        with st.expander("🔍 Recent Flight Searches", expanded=False):
+            try:
+                recent_searches_df = fetch_recent_searches(5)
+                if recent_searches_df is not None and not recent_searches_df.empty:
+                    for idx, row in recent_searches_df.iterrows():
+                        search_date = pd.to_datetime(row.get('created_at', '')).strftime('%Y-%m-%d %H:%M') if 'created_at' in row and row.get('created_at') else 'N/A'
+                        origin = row.get('origin', 'N/A')
+                        destination = row.get('destination', 'N/A')
+                        duration = row.get('duration_days', 'N/A')
+                        
+                        st.markdown(f"""
+                        **{origin} → {destination}**  
+                        📅 {search_date} | 🗓️ {duration} days
+                        """)
+                        st.markdown("---")
+                else:
+                    st.info("No recent searches available.")
+            except Exception as e:
+                st.error(f"Error loading recent searches: {e}")
+
+def display_system_status():
+    """Display system status and health"""
+    st.markdown("## 🔧 System Status & Health")
+    
+    # Database status section
+    st.markdown("### 💾 Database Status")
+    db_col1, db_col2 = st.columns(2)
+    
+    with db_col1:
+        try:
+            # Get database info
+            db_info = get_database_info()
+            
+            st.success("✅ Database: Connected")
+            st.write(f"**File Size:** {db_info.get('file_size_mb', 'Unknown')} MB")
+            
+            # Table information
+            st.markdown("**Table Counts:**")
+            for table, count in db_info.get('table_counts', {}).items():
+                st.write(f"• {table}: {count:,} records")
+                
+        except Exception as e:
+            st.error(f"❌ Database Error: {e}")
+    
+    with db_col2:
+        st.markdown("#### API & Service Status")
+        
+        # Check API keys
+        api_status = {
+            "SerpAPI": SERPAPI_KEY is not None and SERPAPI_KEY != "",
+            "Google API": GOOGLE_API_KEY is not None and GOOGLE_API_KEY != "",
+            "Twilio": client is not None
+        }
+        
+        for service, status in api_status.items():
+            if status:
+                st.success(f"✅ {service}: Connected")
+            else:
+                st.error(f"❌ {service}: Not configured")
+        
+        # System metrics
+        st.markdown("**System Info:**")
+        st.write(f"• Current Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        st.write(f"• Session State Keys: {len(st.session_state)}")
+    
+    # Backup and export section
+    st.markdown("---")
+    st.markdown("### 📥 Data Management")
+    
+    backup_col1, backup_col2 = st.columns(2)
+    
+    with backup_col1:
+        st.markdown("#### Backup Options")
+        if st.button("💾 Create Database Backup", key="backup_btn", use_container_width=True):
+            backup_name = backup_database()
+            if backup_name:
+                st.success(f"Backup created: {backup_name}")
+            else:
+                st.error("Backup failed")
+    
+    with backup_col2:
+        st.markdown("#### Export Options")
+        
+        export1, export2, export3 = st.columns(3)
+        
+        with export1:
+            if st.button("📊 Search Data", key="export_search_btn"):
+                try:
+                    search_data = fetch_all_searches()
+                    if search_data is not None and not search_data.empty:
+                        csv = search_data.to_csv(index=False)
+                        st.download_button(
+                            "💾 Download",
+                            csv,
+                            f"flight_searches_{datetime.now().strftime('%Y%m%d')}.csv",
+                            "text/csv",
+                            key="download_search_btn"
+                        )
+                    else:
+                        st.warning("No search data available.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+        
+        with export2:
+            if st.button("👥 Contact Data", key="export_contact_btn"):
+                try:
+                    contact_data = fetch_contacts()
+                    if contact_data is not None and not contact_data.empty:
+                        csv = contact_data.to_csv(index=False)
+                        st.download_button(
+                            "💾 Download",
+                            csv,
+                            f"contacts_{datetime.now().strftime('%Y%m%d')}.csv",
+                            "text/csv",
+                            key="download_contact_btn"
+                        )
+                    else:
+                        st.warning("No contact data available.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+        
+        with export3:
+            if st.button("📈 Analytics", key="export_analytics_btn"):
+                try:
+                    analytics_summary = generate_analytics_summary()
+                    st.download_button(
+                        "💾 Download",
+                        analytics_summary,
+                        f"analytics_summary_{datetime.now().strftime('%Y%m%d')}.csv",
+                        "text/csv",
+                        key="download_analytics_btn"
+                    )
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+def unified_admin_dashboard():
+    """Main unified admin dashboard"""
+    st.markdown("# 🔐 RoamGenie Admin Dashboard")
+    
+    # Authentication
+    if not admin_login():
+        return
+    
+    st.markdown("---")
+    
+    # Navigation - Use selectbox instead of tabs for better organization
+    dashboard_section = st.selectbox(
+        "📋 Select Dashboard Section:",
+        [
+            "📊 Overview & Metrics",
+            "📈 Analytics & Charts", 
+            "👥 Customer Management",
+            "✈️ Flight Management",
+            "🔧 System Management"
+        ],
+        key="dashboard_section_selector"
+    )
+    
+    st.markdown("---")
+    
+    # Display selected section
+    if dashboard_section == "📊 Overview & Metrics":
+        display_overview_metrics()
+    
+    elif dashboard_section == "📈 Analytics & Charts":
+        display_charts_section()
+    
+    elif dashboard_section == "👥 Customer Management":
+        display_customer_management()
+    
+    elif dashboard_section == "✈️ Flight Management":
+        display_flight_management()
+    
+    elif dashboard_section == "🔧 System Management":
+        display_system_status()
+
+def handle_admin_dashboard():
+    """Handle admin dashboard in main app"""
+    # Dashboard Header
+    st.header("📊 RoamGenie Dashboard")
+    
+    admin_access = st.checkbox("🔐 Admin Access", key="admin_access_checkbox")
+    
+    if admin_access:
+        # Show unified admin dashboard
+        unified_admin_dashboard()
+    else:
+        st.info("🔒 Dashboard access is restricted. Please enable Admin Access and login to view dashboard.")
+
+
+
+st.set_page_config(page_title="RoamGenie - AI Travel Planner", layout="wide",initial_sidebar_state="collapsed")
+
+with st.sidebar:
+    st.markdown("### 🔑 Admin Access")
+    if st.checkbox("Enable Admin Dashboard"):
+        st.session_state.current_page = "Dashboard"
 
 # Twilio SMS Notification setup
 try:
@@ -176,7 +893,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-SERPAPI_KEY = "6099ab3ce6d444269b4784be73361088426295f0498d473fdc72837f347818ba"
+SERPAPI_KEY = "38ad79ce3da5c3b2281cb1bc8a07c89997f88b30480f9de6866161da700d5da7"
 GOOGLE_API_KEY = "AIzaSyCtKYE5PdV3v9gnEvl1drk42LlNWUcnZHA"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
@@ -445,7 +1162,7 @@ class PassportScanner:
 passport_scanner = PassportScanner()
 
 # Navigation Bar
-col_nav = st.columns(4)
+col_nav = st.columns(5)
 if col_nav[0].button("Travel Plan", key="nav_travel_plan", help="Plan your next trip"):
     st.session_state.current_page = "Travel Plan"
 if col_nav[1].button("Passport", key="nav_passport", help="Find visa-free destinations based on your passport"):
@@ -454,6 +1171,10 @@ if col_nav[2].button("IVR Call", key="nav_ivr_call", help="Initiate a travel IVR
     st.session_state.current_page = "IVR Call"
 if col_nav[3].button("Contact Us", key="nav_contact_us", help="Get in touch with us"):
     st.session_state.current_page = "Contact Us"
+if col_nav[4].button("Emergency Support", key="nav_emergency_support", help="Emergency & offline help"):
+    st.session_state.current_page = "Emergency & Offline Support"
+
+
 
 st.markdown("---")
 
@@ -675,6 +1396,22 @@ if st.session_state.current_page == "Travel Plan":
         st.subheader("Your Personalized Itinerary")
         st.write(itinerary.content)
 
+        # inside Generate Travel Plan block, after you build 'itinerary' and cheapest_flights
+        price_estimate = None
+        try:
+            price_estimate = float(cheapest_flights[0].get("price")) if cheapest_flights and cheapest_flights[0].get("price") else None
+        except Exception:
+            price_estimate = None
+
+        # Log into DB
+        try:
+            log_flight_search(
+                source, destination, str(departure_date), str(return_date),
+                num_days, budget, flight_class, price_estimate
+            )
+        except Exception as e:
+            st.warning(f"Could not log flight search: {e}")
+
         st.success("Travel plan generated successfully!")
 
 elif st.session_state.current_page == "Passport":
@@ -851,76 +1588,159 @@ elif st.session_state.current_page == "IVR Call":
         else:
             st.warning("Please enter a valid Indian phone number starting with +91.")
 
+# Fixed Contact Us Section
 elif st.session_state.current_page == "Contact Us":
-    st.header("Save Your Plan / Contact Us")
-    first_name = st.text_input("First Name")
-    last_name = st.text_input("Last Name")
-    email = st.text_input("Email")
-    phone = st.text_input("Phone Number")
+    st.header("💾 Save Your Plan / Contact Us")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Contact Information")
+        first_name = st.text_input("First Name")
+        last_name = st.text_input("Last Name")
+        email = st.text_input("Email")
+        phone = st.text_input("Phone Number")
+        message = st.text_area("Message (Optional)", "I'm interested in travel planning services...")
 
-    def send_to_vendasta(first_name, last_name, email, phone):
-        payload = {
-            "firstName": first_name,
-            "secondName": last_name,
-            "email": email,
-            "phone": phone
-        }
-        try:
-            
-            res = requests.post(
-                "https://automations.businessapp.io/start/UNMG/59276034-e50b-4344-b053-7022d7eac352",
-                json=payload
-            )
-            if res.status_code == 200:
-                st.success("Info sent to our CRM!")
-            else:
-                st.error(f"Failed. Status code: {res.status_code}")
-        except Exception as e:
-            st.error(f"Error: {e}")
-
-    if st.button("Send My Info"):
-        if all([first_name, last_name, email, phone]):
-            send_to_vendasta(first_name, last_name, email, phone)
-        else:
-            st.warning("Please complete all fields.")
-# Twilio credentials
-TWILIO_SID = st.secrets["TWILIO_SID"]
-TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
-TWILIO_WHATSAPP ="whatsapp:+14155238886" # Twilio sandbox number
-client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
-
-st.markdown("## 🛡️ Emergency & Offline Support")
-
-st.write("SEND (join edge-general) on +14155238886 to join our Whatsapp group fallback simulation.")
-user_whatsapp = st.text_input("📱 Enter your WhatsApp number (with +91)", "+91")
-
-
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("🚨 Simulate Flight Cancellation Alert"):
-        if user_whatsapp.startswith("+91") and len(user_whatsapp) == 13:
+        def save_contact_locally(first_name, last_name, email, phone, message=""):
+            """Save contact to local database using the imported function"""
             try:
-                message = client.messages.create(
-                    from_=TWILIO_WHATSAPP,
-                    to=f"whatsapp:{user_whatsapp}",
-                    body="🚨 [Emergency] Your flight AI302 has been CANCELLED. Please check your email for rebooking or call +91-9999999999 for help."
+                # Fix: Use the correct function signature from your database code
+                success = log_enhanced_contact(
+                    firstName=first_name,
+                    secondName=last_name,  # Note: database uses secondName, not last_name
+                    email=email,
+                    phone=phone,
+                    source='web_form'
                 )
-                st.success("Emergency WhatsApp alert sent successfully!")
+                
+                if success:
+                    # Log the event with message
+                    log_event('contact_submitted', {
+                        'email': email,
+                        'message': message,
+                        'source': 'web_form'
+                    }, getattr(st.session_state, 'session_id', 'unknown'))
+                    return True, "Contact saved successfully!"
+                else:
+                    return True, "Contact updated successfully!"  # False means updated, not failed
+                    
             except Exception as e:
-                st.error(f"Error sending WhatsApp message: {e}")
-        else:
-            st.warning("Please enter a valid WhatsApp number.")
+                return False, f"Database error: {e}"
 
-with col2:
-    if st.button("📴 Simulate Offline Fallback"):
-        st.info("It seems you're offline or unable to access live assistance.")
-        try:
-            message = client.messages.create(
-                from_=TWILIO_WHATSAPP,
-                to=f"whatsapp:{user_whatsapp}",
-                body="📴 [Fallback] Our systems are temporarily offline. For urgent help, call +91-9999999999 or visit your nearest airline office."
-            )
-            st.success("Offline fallback message sent to WhatsApp!")
-        except Exception as e:
-            st.error(f"Could not send fallback message: {e}")
+        def send_to_vendasta(first_name, last_name, email, phone, message=""):
+            """Send contact info to Vendasta CRM"""
+            payload = {
+                "firstName": first_name,
+                "secondName": last_name,
+                "email": email,
+                "phone": phone,
+                "message": message
+            }
+            try:
+                res = requests.post(
+                    "https://automations.businessapp.io/start/UNMG/59276034-e50b-4344-b053-7022d7eac352",
+                    json=payload,
+                    timeout=10
+                )
+                if res.status_code == 200:
+                    return True, "Info sent to our CRM successfully!"
+                else:
+                    return False, f"CRM submission failed. Status code: {res.status_code}"
+            except Exception as e:
+                return False, f"Error sending to CRM: {e}"
+
+        if st.button("📤 Send My Info", key="send_contact_info"):
+            if all([first_name, last_name, email, phone]):
+                with st.spinner("Saving your information..."):
+                    # Save locally first
+                    local_success, local_message = save_contact_locally(first_name, last_name, email, phone, message)
+                    
+                    if local_success:
+                        st.success(f"✅ {local_message}")
+                        
+                        # Then send to Vendasta
+                        vendasta_success, vendasta_message = send_to_vendasta(first_name, last_name, email, phone, message)
+                        
+                        if vendasta_success:
+                            st.success(f"✅ {vendasta_message}")
+                        else:
+                            st.warning(f"⚠️ {vendasta_message} (But saved locally)")
+                        
+                    else:
+                        st.error(f"❌ {local_message}")
+            else:
+                st.warning("⚠️ Please complete all required fields (First Name, Last Name, Email, Phone).")
+    
+    with col2:
+        st.subheader("🎯 Quick Actions")
+        if st.button("🔄 Reset Session"):
+            for key in list(st.session_state.keys()):
+                if key not in ['session_id']:  # Keep session ID
+                    del st.session_state[key]
+            st.success("Session reset successfully!")
+            st.rerun()
+
+
+# Enhanced Admin Dashboard Functi
+# Your existing Dashboard section with the admin call fix
+elif st.session_state.current_page == "Dashboard":
+    handle_admin_dashboard()
+        
+elif st.session_state.current_page == "Emergency & Offline Support":
+    st.markdown("## 🛡️ Emergency & Offline Support")
+
+    st.write("SEND (join edge-general) on +14155238886 to join our WhatsApp group fallback simulation.")
+    user_whatsapp = st.text_input("📱 Enter your WhatsApp number (with +91)", "+91")
+
+    # Twilio WhatsApp credentials
+    try:
+        TWILIO_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+        TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
+        TWILIO_WHATSAPP = "whatsapp:+14155238886"  # Twilio sandbox number
+        whatsapp_client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
+    except KeyError:
+        whatsapp_client = None
+        st.warning("WhatsApp service not configured")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🚨 Simulate Flight Cancellation Alert"):
+            if user_whatsapp.startswith("+91") and len(user_whatsapp) == 13:
+                try:
+                    if whatsapp_client:
+                        whatsapp_client.messages.create(
+                            from_=TWILIO_WHATSAPP,
+                            to=f"whatsapp:{user_whatsapp}",
+                            body="🚨 [Emergency] Your flight AI302 has been CANCELLED. Please check your email for rebooking or call +91-9999999999 for help."
+                        )
+                        st.success("Emergency WhatsApp alert sent successfully!")
+                    else:
+                        st.error("WhatsApp service not available")
+                except Exception as e:
+                    st.error(f"Error sending WhatsApp message: {e}")
+            else:
+                st.warning("Please enter a valid WhatsApp number.")
+
+    with col2:
+        if st.button("📴 Simulate Offline Fallback"):
+            st.info("It seems you're offline or unable to access live assistance.")
+            try:
+                if whatsapp_client:
+                    whatsapp_client.messages.create(
+                        from_=TWILIO_WHATSAPP,
+                        to=f"whatsapp:{user_whatsapp}",
+                        body="📴 [Fallback] Our systems are temporarily offline. For urgent help, call +91-9999999999 or visit your nearest airline office."
+                    )
+                    st.success("Offline fallback message sent to WhatsApp!")
+                else:
+                    st.error("WhatsApp service not available")
+            except Exception as e:
+                st.error(f"Could not send fallback message: {e}")
+
+
+
+
+
+
