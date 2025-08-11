@@ -10,7 +10,6 @@ fastapi
 uvicorn
 twilio
 agno>=0.1.8
-serpapi>=0.1.4
 google-genai
 google-search-results>=2.4.2
 plotly
