@@ -589,7 +589,7 @@ def display_system_status():
         api_status = {
             "SerpAPI": SERPAPI_KEY is not None and SERPAPI_KEY != "",
             "Google API": GOOGLE_API_KEY is not None and GOOGLE_API_KEY != "",
-            "Twilio": client is not None
+            "Twilio": Client is not None
         }
         
         for service, status in api_status.items():
@@ -1713,7 +1713,7 @@ elif st.session_state.current_page == "Emergency & Offline Support":
 
     # Twilio WhatsApp credentials
     try:
-        TWILIO_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+        TWILIO_SID = st.secrets["TWILIO_SID"]
         TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
         TWILIO_WHATSAPP = "whatsapp:+14155238886"  # Twilio sandbox number
         whatsapp_client = Client(TWILIO_SID, TWILIO_AUTH_TOKEN)
