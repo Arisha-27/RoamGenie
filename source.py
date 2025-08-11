@@ -90,8 +90,8 @@ try:
 except:
     # Fallback credentials
     ADMIN_CREDENTIALS = {
-        "admin": "admin123",
-        "manager": "manager456"
+        "mustafa": "none",
+        "arisha": "mustafa"
     }
 
 def check_admin_credentials(username, password):
@@ -125,7 +125,7 @@ def admin_login():
                     st.error("❌ Invalid credentials!")
         
         # Show demo credentials for testing
-        st.info("**Demo Credentials:**\n- Username: `admin` Password: `admin123`\n- Username: `manager` Password: `manager456`")
+        st.info("**Demo Credentials:**\n- Username: `arisha` Password: `mustafa`\n- Username: `mustafa` Password: `none`")
         return False
     else:
         header_col, logout_col = st.columns([6, 1])
@@ -735,36 +735,6 @@ with st.sidebar:
     st.markdown("### 🔑 Admin Access")
     if st.checkbox("Enable Admin Dashboard"):
         st.session_state.current_page = "Dashboard"
-
-# Twilio SMS Notification setup
-try:
-    twilio_sid = st.secrets["TWILIO_ACCOUNT_SID"]
-    twilio_token = st.secrets["TWILIO_AUTH_TOKEN"]
-    twilio_number = st.secrets["TWILIO_PHONE_NUMBER"]
-    client = Client(twilio_sid, twilio_token)
-except KeyError:
-   # st.warning("Twilio secrets not found. Please configure them in .streamlit/secrets.toml for full functionality.")
-    # Fallback dummy values to prevent app crash if secrets are not configured for local dev
-    twilio_sid = "ACa84b12a3d81d88e62b1d06d29cfd4f18"
-    twilio_token = "387373d055a92651efe50091755bb82f"
-    twilio_number = "+14439988287"
-    client = None
-
-def make_voice_call(to_number, message):
-    if client:
-        try:
-            call = client.calls.create(
-                to=to_number,
-                from_=twilio_number,
-                twiml=f"<Response><Say>{message}</Say></Response>"
-            )
-            return call.sid
-        except Exception as e:
-            st.error(f"Error making call: {e}")
-            return None
-    else:
-        st.error("Twilio client not initialized. Please configure Twilio secrets.")
-        return None
 
 
 st.markdown("""
@@ -1560,33 +1530,81 @@ elif st.session_state.current_page == "Passport":
             st.metric("Oceania", oceania_count)
 
 elif st.session_state.current_page == "IVR Call":
-
     # Replace this with your actual n8n webhook URL
     N8N_WEBHOOK_URL = "https://mhsiddiqui.app.n8n.cloud/webhook/initiate-call"
 
-    user_phone = st.text_input("Enter your phone number (with country code)", "XXXXXXXXXX")
+    user_phone = st.text_input("Enter your phone number (with country code)", "+91XXXXXXXXX")
 
     if st.button("Start Call"):
-        if user_phone.startswith("+91") and len(user_phone) == 13:
+        # Enhanced validation
+        if user_phone.startswith("+91") and len(user_phone) == 13 and user_phone[3:].isdigit():
             with st.spinner("Calling..."):
                 try:
                     payload = {
                         "to_number": user_phone
                     }
+                    
+                    # Add debugging information
+                    st.write(f"Debug: Sending request to {N8N_WEBHOOK_URL}")
+                    st.write(f"Debug: Payload: {payload}")
 
-                    response = requests.post(N8N_WEBHOOK_URL, json=payload)
+                    response = requests.post(
+                        N8N_WEBHOOK_URL, 
+                        json=payload,
+                        headers={'Content-Type': 'application/json'},
+                        timeout=30  # Add timeout
+                    )
+                    
+                    # Enhanced response handling
+                    st.write(f"Debug: Response status code: {response.status_code}")
+                    st.write(f"Debug: Response headers: {dict(response.headers)}")
+                    
                     if response.status_code == 200:
-                        result = response.json()
-                        if result.get("success"):
-                            st.success(f"Call initiated successfully! SID: {result['sid']}")
-                        else:
-                            st.warning("Call request sent, but no SID returned.")
+                        try:
+                            result = response.json()
+                            st.write(f"Debug: Response JSON: {result}")
+                            
+                            if result.get("success"):
+                                st.success(f"Call initiated successfully! SID: {result.get('sid', 'N/A')}")
+                            else:
+                                st.warning(f"Call request processed but marked as unsuccessful: {result}")
+                        except ValueError as json_error:
+                            st.error(f"Response received but not valid JSON: {response.text}")
                     else:
-                        st.error(f"Call initiation failed. Status: {response.status_code}, Details: {response.text}")
+                        st.error(f"Call initiation failed. Status: {response.status_code}")
+                        st.error(f"Response content: {response.text}")
+                        
+                except requests.exceptions.Timeout:
+                    st.error("Request timed out. Please check your internet connection and try again.")
+                except requests.exceptions.ConnectionError:
+                    st.error("Connection error. Please check if the webhook URL is accessible.")
+                except requests.exceptions.RequestException as req_error:
+                    st.error(f"Request error: {req_error}")
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Unexpected error: {type(e).__name__}: {e}")
+                    
         else:
-            st.warning("Please enter a valid Indian phone number starting with +91.")
+            st.warning("Please enter a valid Indian phone number starting with +91 (13 digits total).")
+            if not user_phone.startswith("+91"):
+                st.info("Phone number should start with +91")
+            elif len(user_phone) != 13:
+                st.info(f"Phone number should be 13 characters long (currently {len(user_phone)})")
+            elif not user_phone[3:].isdigit():
+                st.info("Phone number should contain only digits after +91")
+
+    # Add a test connectivity button
+    if st.button("Test Webhook Connectivity"):
+        try:
+            test_response = requests.get(N8N_WEBHOOK_URL.replace('/webhook/', '/webhook-test/'), timeout=10)
+            st.info(f"Webhook test response: {test_response.status_code}")
+        except Exception as e:
+            st.error(f"Webhook connectivity test failed: {e}")
+
+    # Display current session state for debugging
+    if st.checkbox("Show Debug Info"):
+        st.write("Current session state:")
+        for key, value in st.session_state.items():
+            st.write(f"- {key}: {value}")
 
 # Fixed Contact Us Section
 elif st.session_state.current_page == "Contact Us":
