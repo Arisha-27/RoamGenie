@@ -124,7 +124,7 @@ def admin_login():
                     st.error("❌ Invalid credentials!")
         
         # Show demo credentials for testing
-        #st.info("**Demo Credentials:**\n- Username: `arisha` Password: `mustafa`\n- Username: `mustafa` Password: `none`")
+        st.info("**Demo Credentials:**\n- Username: `Webisdom` Password: `admin@123`")
         return False
     else:
         header_col, logout_col = st.columns([6, 1])
