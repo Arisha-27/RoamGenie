@@ -90,8 +90,7 @@ try:
 except:
     # Fallback credentials
     ADMIN_CREDENTIALS = {
-        "mustafa": "none",
-        "arisha": "mustafa"
+        "Webisdom": "admin@123"
     }
 
 def check_admin_credentials(username, password):
@@ -125,7 +124,7 @@ def admin_login():
                     st.error("❌ Invalid credentials!")
         
         # Show demo credentials for testing
-        st.info("**Demo Credentials:**\n- Username: `arisha` Password: `mustafa`\n- Username: `mustafa` Password: `none`")
+        #st.info("**Demo Credentials:**\n- Username: `arisha` Password: `mustafa`\n- Username: `mustafa` Password: `none`")
         return False
     else:
         header_col, logout_col = st.columns([6, 1])
