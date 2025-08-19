@@ -862,7 +862,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-SERPAPI_KEY = "38ad79ce3da5c3b2281cb1bc8a07c89997f88b30480f9de6866161da700d5da7"
+SERPAPI_KEY = "b229b05d6980bcc9e2f1273c122b7000b17359c850560d5b70022895dddf3ad1"
 GOOGLE_API_KEY = "AIzaSyCraftTEqYDP9NBHlJTQaoH0JnGrWIycok"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
