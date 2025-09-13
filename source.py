@@ -1255,7 +1255,6 @@ if st.session_state.current_page == "Travel Plan":
         ],
         model=Gemini(id="gemini-2.0-flash-exp"),
         tools=[SerpApiTools(api_key=SERPAPI_KEY)],
-        add_datetime_to_instructions=True,
     )
 
     planner = Agent(
