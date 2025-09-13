@@ -1263,7 +1263,6 @@ if st.session_state.current_page == "Travel Plan":
             "Create a detailed itinerary with travel preferences, time estimates, and budget alignment."
         ],
         model=Gemini(id="gemini-2.0-flash-exp"),
-        add_datetime_to_instructions=True,
     )
 
     hotel_restaurant_finder = Agent(
@@ -1273,7 +1272,6 @@ if st.session_state.current_page == "Travel Plan":
         ],
         model=Gemini(id="gemini-2.0-flash-exp"),
         tools=[SerpApiTools(api_key=SERPAPI_KEY)],
-        add_datetime_to_instructions=True,
     )
 
     if st.button("Generate Travel Plan"):
